@@ -8,7 +8,11 @@ from supabase import create_client, Client
 # ============================================================
 
 SUPABASE_URL = os.environ["SUPABASE_URL"]
-SUPABASE_SERVICE_KEY = os.environ["SUPABASE_SERVICE_KEY"]
+
+SUPABASE_SERVICE_KEY = os.environ[
+    "SUPABASE_SERVICE_KEY"
+]
+
 
 supabase: Client = create_client(
     SUPABASE_URL,
@@ -23,24 +27,33 @@ supabase: Client = create_client(
 def create_capture(
     capture_id,
     created_at,
-    user_agent=None
+    user_agent=None,
+    device_id=None
 ):
+
+    data = {
+        "capture_id": capture_id,
+        "created_at": created_at,
+        "user_agent": user_agent,
+        "device_id": device_id
+    }
+
+
     response = (
         supabase
         .table("captures")
-        .insert({
-            "capture_id": capture_id,
-            "created_at": created_at,
-            "user_agent": user_agent
-        })
+        .insert(data)
         .select("*")
         .execute()
     )
 
+
     if not response.data:
+
         raise RuntimeError(
             "Não foi possível criar a captura."
         )
+
 
     return response.data[0]
 
@@ -51,13 +64,49 @@ def get_capture(capture_id):
         supabase
         .table("captures")
         .select("*")
-        .eq("capture_id", capture_id)
+        .eq(
+            "capture_id",
+            capture_id
+        )
         .limit(1)
         .execute()
     )
 
+
     if not response.data:
+
         return None
+
+
+    return response.data[0]
+
+
+def get_capture_by_device(
+    device_id
+):
+
+    if not device_id:
+
+        return None
+
+
+    response = (
+        supabase
+        .table("captures")
+        .select("*")
+        .eq(
+            "device_id",
+            device_id
+        )
+        .limit(1)
+        .execute()
+    )
+
+
+    if not response.data:
+
+        return None
+
 
     return response.data[0]
 
@@ -68,9 +117,13 @@ def get_all_captures():
         supabase
         .table("captures")
         .select("*")
-        .order("id", desc=True)
+        .order(
+            "id",
+            desc=True
+        )
         .execute()
     )
+
 
     return response.data or []
 
@@ -91,20 +144,34 @@ def create_location(
         supabase
         .table("locations")
         .insert({
-            "capture_id": capture_id,
-            "latitude": latitude,
-            "longitude": longitude,
-            "accuracy": accuracy,
-            "created_at": created_at
+
+            "capture_id":
+                capture_id,
+
+            "latitude":
+                latitude,
+
+            "longitude":
+                longitude,
+
+            "accuracy":
+                accuracy,
+
+            "created_at":
+                created_at
+
         })
         .select("*")
         .execute()
     )
 
+
     if not response.data:
+
         raise RuntimeError(
             "Não foi possível registrar a localização."
         )
+
 
     return response.data[0]
 
@@ -118,14 +185,20 @@ def get_locations(
         supabase
         .table("locations")
         .select("*")
-        .eq("capture_id", capture_id)
+        .eq(
+            "capture_id",
+            capture_id
+        )
     )
 
+
     if after_id is not None:
+
         query = query.gt(
             "id",
             after_id
         )
+
 
     response = (
         query
@@ -133,23 +206,35 @@ def get_locations(
         .execute()
     )
 
+
     return response.data or []
 
 
-def get_last_location(capture_id):
+def get_last_location(
+    capture_id
+):
 
     response = (
         supabase
         .table("locations")
         .select("*")
-        .eq("capture_id", capture_id)
-        .order("id", desc=True)
+        .eq(
+            "capture_id",
+            capture_id
+        )
+        .order(
+            "id",
+            desc=True
+        )
         .limit(1)
         .execute()
     )
 
+
     if not response.data:
+
         return None
+
 
     return response.data[0]
 
@@ -169,41 +254,66 @@ def create_photo(
         supabase
         .table("photos")
         .insert({
-            "capture_id": capture_id,
-            "location_id": location_id,
-            "filename": filename,
-            "created_at": created_at
+
+            "capture_id":
+                capture_id,
+
+            "location_id":
+                location_id,
+
+            "filename":
+                filename,
+
+            "created_at":
+                created_at
+
         })
         .select("*")
         .execute()
     )
 
+
     if not response.data:
+
         raise RuntimeError(
             "Não foi possível registrar a fotografia."
         )
 
+
     return response.data[0]
 
 
-def get_photos(capture_id):
+def get_photos(
+    capture_id
+):
 
     response = (
         supabase
         .table("photos")
         .select("*")
-        .eq("capture_id", capture_id)
-        .order("id", desc=True)
+        .eq(
+            "capture_id",
+            capture_id
+        )
+        .order(
+            "id",
+            desc=True
+        )
         .execute()
     )
+
 
     return response.data or []
 
 
-def get_photo_location(location_id):
+def get_photo_location(
+    location_id
+):
 
     if location_id is None:
+
         return None
+
 
     response = (
         supabase
@@ -211,13 +321,19 @@ def get_photo_location(location_id):
         .select(
             "id, latitude, longitude, accuracy"
         )
-        .eq("id", location_id)
+        .eq(
+            "id",
+            location_id
+        )
         .limit(1)
         .execute()
     )
 
+
     if not response.data:
+
         return None
+
 
     return response.data[0]
 
@@ -237,21 +353,32 @@ def upload_photo(
         .storage
         .from_("captures")
         .upload(
+
             filename,
+
             file_data,
+
             {
-                "content-type": content_type,
-                "upsert": "false"
+                "content-type":
+                    content_type,
+
+                "upsert":
+                    "false"
             }
+
         )
     )
 
 
-def download_photo(filename):
+def download_photo(
+    filename
+):
 
     return (
         supabase
         .storage
         .from_("captures")
-        .download(filename)
+        .download(
+            filename
+        )
     )
