@@ -24,7 +24,7 @@ import sys
 
 # ============================================================
 
-PROJECT_DIR = Path(**file**).resolve().parent
+PROJECT_DIR = Path(__file__).resolve().parent
 
 PARENT_DIR = PROJECT_DIR.parent.parent
 
