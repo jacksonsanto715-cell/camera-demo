@@ -1329,36 +1329,39 @@ def api_new_locations(capture_id):
 # SERVIR IMAGENS DO SUPABASE STORAGE
 # ============================================================
 
-@app.get(
-    "/uploads/<filename>"
-)
-@api_login_required
+@app.get("/uploads/<filename>")
+@login_required
 def uploaded_file(filename):
 
     try:
 
-        file_data = download_photo(
-            filename
+        file_data = download_photo(filename)
+
+        response = make_response(
+            file_data
         )
 
-        return send_file(
+        response.headers["Content-Type"] = "image/jpeg"
 
-            BytesIO(file_data),
-
-            mimetype="image/jpeg",
-
-            download_name=filename
-
+        response.headers["Cache-Control"] = (
+            "private, max-age=60"
         )
+
+        return response
 
     except Exception as e:
+
+        print(
+            "[UPLOADS] Erro ao baixar foto:",
+            e
+        )
 
         return jsonify({
 
             "success": False,
 
             "error":
-                str(e)
+                "Imagem não encontrada"
 
         }), 404
 
