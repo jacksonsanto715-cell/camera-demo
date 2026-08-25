@@ -440,10 +440,6 @@ def index():
 
     existing_capture = None
 
-    # --------------------------------------------------------
-    # PROCURA USUÁRIO EXISTENTE
-    # --------------------------------------------------------
-
     if device_id:
 
         existing_capture = get_capture_by_device(
@@ -451,28 +447,20 @@ def index():
         )
 
     # --------------------------------------------------------
-    # SE NÃO EXISTE, CRIA
+    # SE NÃO EXISTE COOKIE VÁLIDO
+    # NÃO CRIA CAPTURA AQUI.
+    #
+    # A captura será criada pelo /api/session,
+    # que é chamado pelo JavaScript do index.html.
     # --------------------------------------------------------
 
-    if not existing_capture:
+    capture_id = None
 
-        (
-            device_id,
-            existing_capture,
-            is_new
-        ) = get_or_create_device_capture()
+    if existing_capture:
 
-    # --------------------------------------------------------
-    # ID PERMANENTE DO USUÁRIO
-    # --------------------------------------------------------
-
-    capture_id = existing_capture[
-        "capture_id"
-    ]
-
-    # --------------------------------------------------------
-    # RENDERIZA
-    # --------------------------------------------------------
+        capture_id = existing_capture[
+            "capture_id"
+        ]
 
     response = make_response(
 
@@ -487,24 +475,27 @@ def index():
     )
 
     # --------------------------------------------------------
-    # COOKIE PERMANENTE
+    # Só mantém cookie existente.
+    # Não cria um novo aqui.
     # --------------------------------------------------------
 
-    response.set_cookie(
+    if device_id:
 
-        DEVICE_COOKIE_NAME,
+        response.set_cookie(
 
-        device_id,
+            DEVICE_COOKIE_NAME,
 
-        max_age=DEVICE_COOKIE_MAX_AGE,
+            device_id,
 
-        secure=True,
+            max_age=DEVICE_COOKIE_MAX_AGE,
 
-        httponly=True,
+            secure=True,
 
-        samesite="Lax"
+            httponly=True,
 
-    )
+            samesite="Lax"
+
+        )
 
     return response
 
