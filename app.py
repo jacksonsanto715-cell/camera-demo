@@ -513,9 +513,9 @@ def api_session():
 
         existing_capture = None
 
-        # ----------------------------------------------------
-        # PROCURA CAPTURA EXISTENTE
-        # ----------------------------------------------------
+        # ====================================================
+        # USUÁRIO JÁ POSSUI COOKIE
+        # ====================================================
 
         if device_id:
 
@@ -523,9 +523,9 @@ def api_session():
                 device_id
             )
 
-        # ----------------------------------------------------
+        # ====================================================
         # USUÁRIO EXISTENTE
-        # ----------------------------------------------------
+        # ====================================================
 
         if existing_capture:
 
@@ -535,25 +535,36 @@ def api_session():
 
             is_new = False
 
-        # ----------------------------------------------------
+        # ====================================================
         # NOVO USUÁRIO
-        # ----------------------------------------------------
+        # ====================================================
 
         else:
 
-            (
-                device_id,
-                existing_capture,
-                is_new
-            ) = get_or_create_device_capture()
+            device_id = create_device_id()
 
-            capture_id = existing_capture[
-                "capture_id"
-            ]
+            capture_id = uuid4().hex
 
-        # ----------------------------------------------------
+            existing_capture = create_capture(
+
+                capture_id=capture_id,
+
+                created_at=now_utc(),
+
+                user_agent=request.headers.get(
+                    "User-Agent",
+                    ""
+                ),
+
+                device_id=device_id
+
+            )
+
+            is_new = True
+
+        # ====================================================
         # RESPOSTA
-        # ----------------------------------------------------
+        # ====================================================
 
         response = make_response(
 
@@ -574,9 +585,9 @@ def api_session():
 
         )
 
-        # ----------------------------------------------------
-        # GARANTE COOKIE
-        # ----------------------------------------------------
+        # ====================================================
+        # COOKIE PERMANENTE
+        # ====================================================
 
         response.set_cookie(
 
@@ -598,11 +609,17 @@ def api_session():
 
     except Exception as e:
 
+        print(
+            "[SESSION] Erro:",
+            e
+        )
+
         return jsonify({
 
             "success": False,
 
-            "error": str(e)
+            "error":
+                str(e)
 
         }), 500
 
