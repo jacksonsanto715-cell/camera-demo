@@ -1212,6 +1212,17 @@ let totalDistance = 0;
 let followPosition = true;
 
 
+/*
+Controle para evitar chamadas simultâneas.
+*/
+
+let updatingCaptures = false;
+
+let updatingLocations = false;
+
+let updatingPhotos = false;
+
+
 /* ========================================================
    ELEMENTOS
 ======================================================== */
@@ -1434,22 +1445,6 @@ function updateAge() {
     }
 
 
-    /*
-    Classificação do status.
-
-    < 10s:
-    AO VIVO
-
-    10–30s:
-    ATRASADO
-
-    30–60s:
-    SEM ATUALIZAÇÃO
-
-    > 60s:
-    OFFLINE
-    */
-
     if (seconds < 10) {
 
         setStatus(
@@ -1599,11 +1594,6 @@ function calculateTotalDistance() {
             );
 
 
-        /*
-        Ignora pequenas variações
-        de GPS inferiores a 1 metro.
-        */
-
         if (
             distance >= 1
         ) {
@@ -1643,6 +1633,16 @@ function calculateTotalDistance() {
 
 async function loadCaptures() {
 
+    if (updatingCaptures) {
+
+        return;
+
+    }
+
+
+    updatingCaptures = true;
+
+
     try {
 
         const response =
@@ -1650,7 +1650,12 @@ async function loadCaptures() {
                 "/api/captures",
                 {
                     cache:
-                        "no-store"
+                        "no-store",
+
+                    headers: {
+                        "Cache-Control":
+                            "no-cache"
+                    }
                 }
             );
 
@@ -1687,6 +1692,10 @@ async function loadCaptures() {
         renderCaptureSelector();
 
 
+        /*
+        Primeira captura.
+        */
+
         if (
             !currentCaptureId &&
             captures.length > 0
@@ -1704,19 +1713,67 @@ async function loadCaptures() {
                 currentCaptureId
             );
 
+            return;
+
         }
 
+
+        /*
+        Verifica se a captura atual
+        ainda existe.
+        */
+
+        const currentExists =
+            captures.some(
+                capture =>
+                    capture.capture_id ===
+                    currentCaptureId
+            );
+
+
+        /*
+        Se não existe, seleciona
+        a captura mais recente.
+        */
+
+        if (
+            !currentExists &&
+            captures.length > 0
+        ) {
+
+            currentCaptureId =
+                captures[0].capture_id;
+
+
+            captureSelect.value =
+                currentCaptureId;
+
+
+            await loadCapture(
+                currentCaptureId
+            );
+
+        }
 
     }
 
     catch (error) {
 
-        console.error(error);
+        console.error(
+            "Erro ao carregar capturas:",
+            error
+        );
 
         setStatus(
             "offline",
             "ERRO DE CONEXÃO"
         );
+
+    }
+
+    finally {
+
+        updatingCaptures = false;
 
     }
 
@@ -1852,7 +1909,12 @@ async function loadCapture(
 
                 {
                     cache:
-                        "no-store"
+                        "no-store",
+
+                    headers: {
+                        "Cache-Control":
+                            "no-cache"
+                    }
                 }
 
             );
@@ -1883,6 +1945,16 @@ async function loadCapture(
             await response.json();
 
 
+        if (!data.success) {
+
+            throw new Error(
+                data.error ||
+                "Erro ao carregar captura"
+            );
+
+        }
+
+
         currentCapture =
             data.capture;
 
@@ -1904,15 +1976,13 @@ async function loadCapture(
 
 
         currentPhotoIndex =
-            0;
+            photos.length > 0
+                ? photos.length - 1
+                : 0;
 
 
         totalDistance = 0;
 
-
-        /*
-        Última posição.
-        */
 
         if (
             locations.length > 0
@@ -1941,14 +2011,16 @@ async function loadCapture(
 
         renderCapture();
 
-
         updateAge();
 
     }
 
     catch (error) {
 
-        console.error(error);
+        console.error(
+            "Erro ao carregar captura:",
+            error
+        );
 
         setStatus(
             "offline",
@@ -2022,8 +2094,29 @@ function renderPhotos() {
         "block";
 
 
+    /*
+    O backend retorna as fotos
+    mais recentes primeiro.
+
+    Transformamos para ordem
+    cronológica.
+    */
+
     const chronologicalPhotos =
         [...photos].reverse();
+
+
+    /*
+    Garante índice válido.
+    */
+
+    if (
+        currentPhotoIndex < 0
+    ) {
+
+        currentPhotoIndex = 0;
+
+    }
 
 
     if (
@@ -2043,12 +2136,14 @@ function renderPhotos() {
         ];
 
 
+    /*
+    Cache-busting.
+    */
+
     currentPhoto.src =
-        photo.photo_url +
-        "?v=" +
-        encodeURIComponent(
-            photo.created_at
-        );
+        `${photo.photo_url}?v=${encodeURIComponent(
+            photo.created_at || photo.id
+        )}`;
 
 
     photoCounter.textContent =
@@ -2062,9 +2157,6 @@ function renderPhotos() {
     nextPhoto.disabled =
         currentPhotoIndex ===
         chronologicalPhotos.length - 1;
-
-
-    renderHistory();
 
 }
 
@@ -2099,9 +2191,13 @@ nextPhoto.addEventListener(
     "click",
     () => {
 
+        const chronologicalPhotos =
+            [...photos].reverse();
+
+
         if (
             currentPhotoIndex <
-            photos.length - 1
+            chronologicalPhotos.length - 1
         ) {
 
             currentPhotoIndex++;
@@ -2173,7 +2269,9 @@ function renderHistory() {
 
 
             image.src =
-                photo.photo_url;
+                `${photo.photo_url}?v=${encodeURIComponent(
+                    photo.created_at || photo.id
+                )}`;
 
 
             image.alt =
@@ -2305,7 +2403,9 @@ function renderInformation() {
     accuracyElement.textContent =
         currentCapture.accuracy !== null &&
         currentCapture.accuracy !== undefined
-            ? `${Number(currentCapture.accuracy).toFixed(1)} m`
+            ? `${Number(
+                currentCapture.accuracy
+              ).toFixed(1)} m`
             : "—";
 
 
@@ -2651,11 +2751,6 @@ followButton.addEventListener(
                 "✓ Seguindo posição";
 
 
-            /*
-            Centraliza imediatamente
-            na posição atual.
-            */
-
             if (
                 locations.length > 0
             ) {
@@ -2709,12 +2804,16 @@ followButton.addEventListener(
 async function updateLocations() {
 
     if (
-        !currentCaptureId
+        !currentCaptureId ||
+        updatingLocations
     ) {
 
         return;
 
     }
+
+
+    updatingLocations = true;
 
 
     try {
@@ -2726,7 +2825,12 @@ async function updateLocations() {
 
                 {
                     cache:
-                        "no-store"
+                        "no-store",
+
+                    headers: {
+                        "Cache-Control":
+                            "no-cache"
+                    }
                 }
 
             );
@@ -2771,12 +2875,23 @@ async function updateLocations() {
 
 
         /*
-        Adiciona somente posições
-        que ainda não estavam no painel.
+        Adiciona novas posições.
         */
 
         locations.push(
             ...newLocations
+        );
+
+
+        /*
+        Ordena por ID para garantir
+        a sequência correta.
+        */
+
+        locations.sort(
+            (a, b) =>
+                Number(a.id) -
+                Number(b.id)
         );
 
 
@@ -2838,12 +2953,21 @@ async function updateLocations() {
 
     catch (error) {
 
-        console.error(error);
+        console.error(
+            "Erro ao atualizar localização:",
+            error
+        );
 
         setStatus(
             "offline",
             "ERRO DE CONEXÃO"
         );
+
+    }
+
+    finally {
+
+        updatingLocations = false;
 
     }
 
@@ -2857,12 +2981,16 @@ async function updateLocations() {
 async function updatePhotos() {
 
     if (
-        !currentCaptureId
+        !currentCaptureId ||
+        updatingPhotos
     ) {
 
         return;
 
     }
+
+
+    updatingPhotos = true;
 
 
     try {
@@ -2874,7 +3002,12 @@ async function updatePhotos() {
 
                 {
                     cache:
-                        "no-store"
+                        "no-store",
+
+                    headers: {
+                        "Cache-Control":
+                            "no-cache"
+                    }
                 }
 
             );
@@ -2894,7 +3027,9 @@ async function updatePhotos() {
 
         if (!response.ok) {
 
-            return;
+            throw new Error(
+                "Erro ao consultar fotos"
+            );
 
         }
 
@@ -2903,50 +3038,146 @@ async function updatePhotos() {
             await response.json();
 
 
+        if (!data.success) {
+
+            throw new Error(
+                data.error ||
+                "Erro retornado pela API"
+            );
+
+        }
+
+
         const newPhotos =
             data.photos || [];
 
 
-        if (
-            newPhotos.length !==
-            photos.length
-        ) {
+        /*
+        Verifica se houve mudança.
+        */
 
-            const previousCount =
-                photos.length;
-
-
-            photos =
-                newPhotos;
+        const previousIds =
+            photos.map(
+                photo => photo.id
+            );
 
 
-            /*
-            Se chegou foto nova,
-            seleciona a mais recente.
-            */
-
-            if (
-                photos.length >
-                previousCount
-            ) {
-
-                currentPhotoIndex =
-                    photos.length - 1;
-
-            }
+        const newIds =
+            newPhotos.map(
+                photo => photo.id
+            );
 
 
-            renderPhotos();
+        const changed =
+            previousIds.length !==
+                newIds.length
+            ||
+            previousIds.some(
+                (id, index) =>
+                    id !== newIds[index]
+            );
 
-            renderInformation();
+
+        if (!changed) {
+
+            return;
 
         }
+
+
+        const previousCount =
+            photos.length;
+
+
+        /*
+        Atualiza fotos.
+        */
+
+        photos =
+            newPhotos;
+
+
+        /*
+        Se chegou uma nova foto,
+        mostra automaticamente
+        a mais recente.
+        */
+
+        if (
+            photos.length >
+            previousCount
+        ) {
+
+            const chronologicalPhotos =
+                [...photos].reverse();
+
+
+            currentPhotoIndex =
+                chronologicalPhotos.length - 1;
+
+        }
+
+
+        /*
+        Caso tenha sido removida alguma
+        foto ou a posição tenha ficado
+        inválida.
+        */
+
+        const chronologicalPhotos =
+            [...photos].reverse();
+
+
+        if (
+            currentPhotoIndex >=
+            chronologicalPhotos.length
+        ) {
+
+            currentPhotoIndex =
+                chronologicalPhotos.length - 1;
+
+        }
+
+
+        if (
+            currentPhotoIndex < 0
+        ) {
+
+            currentPhotoIndex = 0;
+
+        }
+
+
+        /*
+        Atualiza interface.
+        */
+
+        renderPhotos();
+
+        renderInformation();
+
+        renderHistory();
+
+
+        console.log(
+            "Fotos atualizadas:",
+            photos.length
+        );
 
     }
 
     catch (error) {
 
-        console.error(error);
+        console.error(
+            "Erro ao atualizar fotos:",
+            error
+        );
+
+    }
+
+    finally {
+
+        updatingPhotos = false;
 
     }
 
@@ -3005,11 +3236,15 @@ function formatDate(
 
 async function initialize() {
 
+    /*
+    Primeira carga.
+    */
+
     await loadCaptures();
 
 
     /*
-    Consulta novas posições
+    Atualização automática
     a cada 5 segundos.
     */
 
@@ -3017,7 +3252,26 @@ async function initialize() {
         setInterval(
             async () => {
 
+                /*
+                Primeiro verifica se
+                existem novas capturas.
+                */
+
+                await loadCaptures();
+
+
+                /*
+                Depois verifica novas
+                posições da captura atual.
+                */
+
                 await updateLocations();
+
+
+                /*
+                Finalmente verifica
+                novas fotografias.
+                */
 
                 await updatePhotos();
 
@@ -3029,10 +3283,8 @@ async function initialize() {
 
 
     /*
-    Atualiza o contador de idade
-    a cada segundo.
-
-    Isso NÃO faz requisição ao servidor.
+    Atualiza o relógio a cada segundo,
+    sem fazer requisição ao servidor.
     */
 
     setInterval(
@@ -3043,8 +3295,11 @@ async function initialize() {
 }
 
 
-initialize();
+/* ========================================================
+   INICIAR
+======================================================== */
 
+initialize();
 
 </script>
 
