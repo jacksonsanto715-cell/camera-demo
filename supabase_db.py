@@ -39,18 +39,18 @@ supabase
 .execute()
 )
 
-```
+
 if not response.data:
     raise RuntimeError(
         "Não foi possível criar a captura."
     )
 
 return response.data[0]
-```
+
 
 def get_capture(capture_id):
 
-```
+
 response = (
     supabase
     .table("captures")
