@@ -5,120 +5,59 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>Teste Camera GPS</title>
+    <title>Teste de Captura</title>
 </head>
 
 <body>
 
-<h1>Teste</h1>
+    <h1>Teste do sistema</h1>
 
-<button onclick="testarCamera()">
-    TESTAR CÂMERA
-</button>
+    <button id="startCapture">
+        INICIAR CAPTURA
+    </button>
 
-<button onclick="testarGPS()">
-    TESTAR LOCALIZAÇÃO
-</button>
+    <p id="status">
+        Aguardando...
+    </p>
 
-<p id="resultado">
-    Aguardando...
-</p>
+    <p>
+        Latitude:
+        <span id="latitude">—</span>
+    </p>
 
-<video
-    id="video"
-    autoplay
-    playsinline
-    width="320">
-</video>
+    <p>
+        Longitude:
+        <span id="longitude">—</span>
+    </p>
 
+    <p>
+        Distância:
+        <span id="distance">0</span>
+    </p>
 
-<script>
+    <p>
+        Fotos:
+        <span id="photoCount">0</span>
+    </p>
 
-async function testarCamera() {
+    <video
+        id="camera"
+        autoplay
+        playsinline
+        muted
+        width="320">
+    </video>
 
-    const resultado =
-        document.getElementById("resultado");
-
-    try {
-
-        const stream =
-            await navigator.mediaDevices.getUserMedia({
-                video: true,
-                audio: false
-            });
-
-        document.getElementById("video")
-            .srcObject = stream;
-
-        resultado.textContent =
-            "CÂMERA FUNCIONANDO";
-
-    } catch (erro) {
-
-        console.error(erro);
-
-        resultado.textContent =
-            "ERRO CÂMERA: " +
-            erro.name +
-            " - " +
-            erro.message;
-    }
-}
+    <canvas
+        id="canvas"
+        style="display:none;">
+    </canvas>
 
 
-function testarGPS() {
-
-    const resultado =
-        document.getElementById("resultado");
-
-    if (!navigator.geolocation) {
-
-        resultado.textContent =
-            "Este navegador não suporta GPS.";
-
-        return;
-    }
-
-
-    navigator.geolocation.getCurrentPosition(
-
-        function(position) {
-
-            resultado.textContent =
-                "GPS FUNCIONANDO: " +
-
-                position.coords.latitude +
-
-                ", " +
-
-                position.coords.longitude;
-        },
-
-        function(erro) {
-
-            console.error(erro);
-
-            resultado.textContent =
-                "ERRO GPS: " +
-
-                erro.code +
-
-                " - " +
-
-                erro.message;
-        },
-
-        {
-            enableHighAccuracy: true,
-
-            timeout: 20000,
-
-            maximumAge: 0
-        }
-    );
-}
-
-</script>
+    <script
+        src="/static/js/capture.js"
+        data-page-key="1">
+    </script>
 
 </body>
 
