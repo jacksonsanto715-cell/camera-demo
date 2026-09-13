@@ -5,7 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Painel de capturas</title>
 
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  >
 
   <style>
     :root {
@@ -17,9 +20,12 @@
       --primary:#2563eb;
       --danger:#dc2626;
       --success:#16a34a;
+      --warning:#f59e0b;
     }
 
-    * { box-sizing:border-box; }
+    * {
+      box-sizing:border-box;
+    }
 
     body {
       margin:0;
@@ -137,6 +143,11 @@
       color:#991b1b;
     }
 
+    button.success {
+      background:#dcfce7;
+      color:#166534;
+    }
+
     button:disabled {
       opacity:.55;
       cursor:not-allowed;
@@ -161,61 +172,44 @@
       padding:2px 5px;
       text-align:center;
       display:none;
+      cursor:pointer;
     }
-
-    /* NOTIFICAÇÕES */
 
     .notification-wrapper {
       position:relative;
-      display:flex;
-      align-items:center;
     }
 
-    .notification-button {
-      display:flex;
-      align-items:center;
-      gap:7px;
-      position:relative;
-    }
-
-    .notification-button.has-new {
-      background:#fee2e2;
-      color:#991b1b;
-    }
-
-    .notification-menu {
+    .notification-panel {
       position:absolute;
       right:0;
-      top:calc(100% + 8px);
-      width:350px;
+      top:46px;
+      width:360px;
       max-width:calc(100vw - 28px);
       background:white;
       border:1px solid var(--border);
-      border-radius:10px;
-      box-shadow:0 12px 35px rgba(15,23,42,.18);
+      border-radius:12px;
+      box-shadow:0 14px 40px rgba(15,23,42,.18);
       z-index:1000;
       display:none;
       overflow:hidden;
     }
 
-    .notification-menu.open {
+    .notification-panel.open {
       display:block;
     }
 
     .notification-header {
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:10px;
-      padding:12px 13px;
+      padding:12px 14px;
       border-bottom:1px solid var(--border);
-      color:var(--ink);
-      background:#f8fafc;
+      font-weight:800;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
     }
 
     .notification-header button {
       min-height:30px;
-      padding:5px 8px;
+      padding:5px 9px;
       font-size:11px;
     }
 
@@ -225,38 +219,41 @@
     }
 
     .notification-item {
-      display:block;
-      width:100%;
-      border-radius:0;
-      background:white;
-      text-align:left;
-      padding:12px 13px;
+      padding:12px 14px;
       border-bottom:1px solid #edf1f6;
-      font-weight:400;
-      min-height:auto;
+      cursor:pointer;
     }
 
     .notification-item:hover {
       background:#f8fafc;
     }
 
+    .notification-item:last-child {
+      border-bottom:0;
+    }
+
     .notification-item-title {
       font-weight:800;
-      color:var(--ink);
-      margin-bottom:4px;
+      font-size:13px;
     }
 
     .notification-item-info {
-      font-size:12px;
       color:var(--muted);
-      line-height:1.45;
+      font-size:12px;
+      margin-top:4px;
+      line-height:1.4;
     }
 
     .notification-empty {
-      padding:18px 13px;
+      padding:18px;
+      text-align:center;
       color:var(--muted);
       font-size:13px;
-      text-align:center;
+    }
+
+    .new-mark {
+      color:var(--danger);
+      font-weight:800;
     }
 
     .grid {
@@ -366,33 +363,30 @@
       font-size:13px;
     }
 
-    #map {
-      height:590px;
-    }
-
-    /* CONTROLES DO MAPA */
-
-    .map-controls {
+    .map-toolbar {
       display:flex;
-      align-items:center;
       gap:8px;
-      padding:12px 17px 17px;
       flex-wrap:wrap;
+      padding:10px 12px;
+      border-bottom:1px solid var(--border);
+      background:#f8fafc;
     }
 
-    .map-controls button {
-      flex:0 0 auto;
+    .map-toolbar button {
+      min-height:34px;
+      font-size:12px;
     }
 
     .follow-status {
+      margin-left:auto;
       color:var(--muted);
       font-size:12px;
-      margin-left:auto;
+      display:flex;
+      align-items:center;
     }
 
-    .follow-status.active {
-      color:var(--success);
-      font-weight:700;
+    #map {
+      height:540px;
     }
 
     .gallery {
@@ -508,6 +502,7 @@
       box-shadow:0 10px 28px rgba(0,0,0,.25);
       display:none;
       z-index:5000;
+      line-height:1.4;
     }
 
     .toast.show {
@@ -551,9 +546,8 @@
         height:270px;
       }
 
-      .notification-menu {
-        right:-5px;
-        width:320px;
+      .notification-panel {
+        right:-10px;
       }
 
       .follow-status {
@@ -566,1244 +560,1803 @@
 
 <body>
 
-  <header>
-    <div class="brand">Painel de capturas</div>
+<header>
+  <div class="brand">Painel de capturas</div>
 
-    <div class="account">
-      <span id="userName"></span>
-      <a class="logout" href="/logout">Sair</a>
+  <div class="account">
+    <span id="userName"></span>
+    <a class="logout" href="/logout">Sair</a>
+  </div>
+</header>
+
+<main class="shell">
+
+  <section class="topbar">
+
+    <div class="selector">
+
+      <label for="captureSelect">Captura</label>
+
+      <select id="captureSelect">
+        <option value="">Carregando…</option>
+      </select>
+
+      <button id="renameButton" type="button">
+        Renomear
+      </button>
+
+      <button id="deleteButton" type="button" class="danger">
+        Apagar
+      </button>
+
+      <button id="refreshButton" type="button">
+        ↻ Atualizar
+      </button>
+
     </div>
-  </header>
 
-  <main class="shell">
+    <div class="notification">
 
-    <section class="topbar">
+      <span id="scopeText"></span>
 
-      <div class="selector">
+      <button id="browserNotifications" type="button">
+        Ativar alertas
+      </button>
 
-        <label for="captureSelect">Captura</label>
+      <div class="notification-wrapper">
 
-        <select id="captureSelect">
-          <option value="">Carregando…</option>
-        </select>
+        <span
+          aria-label="Novas notificações"
+          title="Novas notificações"
+          class="badge"
+          id="notificationBadge"
+        >
+          0
+        </span>
 
-        <button id="refreshButton" type="button" class="primary">
-          🔄 Atualizar
-        </button>
+        <div
+          id="notificationPanel"
+          class="notification-panel"
+        >
 
-        <button id="renameButton" type="button">
-          Renomear
-        </button>
+          <div class="notification-header">
+            <span>Notificações</span>
 
-        <button id="deleteButton" type="button" class="danger">
-          Apagar
-        </button>
-
-      </div>
-
-      <div class="notification">
-
-        <span id="scopeText"></span>
-
-        <button id="browserNotifications" type="button">
-          Ativar alertas
-        </button>
-
-        <div class="notification-wrapper">
-
-          <button
-            id="notificationButton"
-            type="button"
-            class="notification-button"
-            aria-expanded="false"
-            aria-controls="notificationMenu"
-          >
-            🔔 Novas
-            <span
-              aria-label="Novas capturas"
-              class="badge"
-              id="notificationBadge"
-            >0</span>
-          </button>
+            <button
+              id="clearNotifications"
+              type="button"
+            >
+              Limpar
+            </button>
+          </div>
 
           <div
-            id="notificationMenu"
-            class="notification-menu"
-            role="dialog"
-            aria-label="Novas capturas"
+            id="notificationList"
+            class="notification-list"
           >
-
-            <div class="notification-header">
-
-              <strong>Novas capturas</strong>
-
-              <button
-                id="clearNotifications"
-                type="button"
-              >
-                Limpar
-              </button>
-
+            <div class="notification-empty">
+              Nenhuma notificação.
             </div>
-
-            <div
-              id="notificationList"
-              class="notification-list"
-            >
-              <div class="notification-empty">
-                Nenhuma captura nova.
-              </div>
-            </div>
-
           </div>
 
         </div>
 
       </div>
 
-    </section>
+    </div>
+
+  </section>
 
 
-    <section class="grid">
+  <section class="grid">
 
-      <div class="side">
-
-        <article class="card">
-
-          <div class="card-title">
-            Foto
-            <span id="photoStatus" class="scope"></span>
-          </div>
-
-          <div class="photo-frame">
-
-            <img
-              id="currentPhoto"
-              alt="Foto capturada"
-            >
-
-            <div
-              id="noPhoto"
-              class="empty"
-            >
-              Nenhuma foto nesta captura.
-            </div>
-
-          </div>
-
-          <div class="body">
-
-            <div class="photo-controls">
-
-              <button
-                id="previousPhoto"
-                type="button"
-              >
-                ← Anterior
-              </button>
-
-              <button
-                id="nextPhoto"
-                type="button"
-              >
-                Próxima →
-              </button>
-
-            </div>
-
-            <div
-              id="photoCounter"
-              class="counter"
-            >
-              Nenhuma foto
-            </div>
-
-          </div>
-
-        </article>
-
-
-        <article class="card">
-
-          <div class="card-title">
-            Informações
-          </div>
-
-          <div class="body">
-
-            <div class="facts">
-
-              <div class="fact">
-                <span>Nome</span>
-                <b id="captureName">—</b>
-              </div>
-
-              <div class="fact">
-                <span>Página</span>
-                <b id="pageKey">—</b>
-              </div>
-
-              <div class="fact">
-                <span>Última posição</span>
-                <b id="updatedAt">—</b>
-              </div>
-
-              <div class="fact">
-                <span>Posições</span>
-                <b id="locationCount">0</b>
-              </div>
-
-              <div class="fact">
-                <span>Fotos</span>
-                <b id="photoCount">0</b>
-              </div>
-
-              <div class="fact">
-                <span>Coordenadas</span>
-                <b id="coordinates">—</b>
-              </div>
-
-            </div>
-
-            <a
-              id="mapsButton"
-              class="maps"
-              target="_blank"
-              rel="noopener"
-              style="display:none"
-            >
-              Abrir no mapa
-            </a>
-
-          </div>
-
-        </article>
-
-      </div>
-
+    <div class="side">
 
       <article class="card">
 
         <div class="card-title">
+          Foto
+          <span id="photoStatus" class="scope"></span>
+        </div>
 
-          Localização recente
+        <div class="photo-frame">
 
-          <span class="scope">
-            máximo de 300 pontos
-          </span>
+          <img
+            id="currentPhoto"
+            alt="Foto capturada"
+          >
+
+          <div id="noPhoto" class="empty">
+            Nenhuma foto nesta captura.
+          </div>
 
         </div>
 
-        <div id="map"></div>
+        <div class="body">
 
-        <div class="map-controls">
+          <div class="photo-controls">
 
-          <button
-            id="followButton"
-            type="button"
-            class="primary"
-          >
-            ▶ Seguir
-          </button>
+            <button id="previousPhoto" type="button">
+              ← Anterior
+            </button>
 
-          <button
-            id="stopFollowButton"
-            type="button"
-            class="danger"
-            disabled
-          >
-            ⏹ Parar de seguir
-          </button>
+            <button id="nextPhoto" type="button">
+              Próxima →
+            </button>
 
-          <button
-            id="centerMapButton"
-            type="button"
-          >
-            ⌖ Última posição
-          </button>
+          </div>
 
-          <span
-            id="followStatus"
-            class="follow-status"
-          >
-            Mapa livre
-          </span>
+          <div id="photoCounter" class="counter">
+            Nenhuma foto
+          </div>
 
         </div>
 
       </article>
 
-    </section>
 
+      <article class="card">
 
-    <section
-      class="card admin"
-      id="historyCard"
-    >
-
-      <div class="card-title">
-
-        Fotos recentes
-
-        <span
-          id="historyDescription"
-          class="scope"
-        ></span>
-
-      </div>
-
-      <div class="body">
-
-        <div
-          id="gallery"
-          class="gallery"
-        >
-          <div class="empty">
-            Selecione uma captura.
-          </div>
+        <div class="card-title">
+          Informações
         </div>
 
-        <button
-          id="loadMorePhotos"
-          type="button"
-          class="load-more"
-          style="display:none"
-        >
-          Carregar mais fotos
-        </button>
+        <div class="body">
 
-      </div>
+          <div class="facts">
 
-    </section>
+            <div class="fact">
+              <span>Nome</span>
+              <b id="captureName">—</b>
+            </div>
 
+            <div class="fact">
+              <span>Página</span>
+              <b id="pageKey">—</b>
+            </div>
 
-    {% if current_user.is_admin %}
+            <div class="fact">
+              <span>Última posição</span>
+              <b id="updatedAt">—</b>
+            </div>
 
-    <div class="admin-toggle">
+            <div class="fact">
+              <span>Posições</span>
+              <b id="locationCount">0</b>
+            </div>
 
-      <button
-        id="toggleAdminPanel"
-        type="button"
-        class="primary"
-        aria-controls="adminPanel"
-        aria-expanded="false"
-      >
-        Gerenciar usuários
-      </button>
+            <div class="fact">
+              <span>Fotos</span>
+              <b id="photoCount">0</b>
+            </div>
+
+            <div class="fact">
+              <span>Coordenadas</span>
+              <b id="coordinates">—</b>
+            </div>
+
+          </div>
+
+          <a
+            id="mapsButton"
+            class="maps"
+            target="_blank"
+            rel="noopener"
+            style="display:none"
+          >
+            Abrir no mapa
+          </a>
+
+        </div>
+
+      </article>
 
     </div>
 
 
-    <section
-      class="card admin"
-      id="adminPanel"
-      hidden
-    >
+    <article class="card">
 
       <div class="card-title">
-
-        Usuários do painel
+        Localização recente
 
         <span class="scope">
-          Cada usuário visualiza apenas a página associada.
+          máximo de 300 pontos
+        </span>
+      </div>
+
+      <div class="map-toolbar">
+
+        <button
+          id="followButton"
+          type="button"
+          class="primary"
+        >
+          Seguir
+        </button>
+
+        <button
+          id="stopFollowButton"
+          type="button"
+        >
+          Parar de seguir
+        </button>
+
+        <button
+          id="lastPositionButton"
+          type="button"
+        >
+          Última posição
+        </button>
+
+        <span
+          id="followStatus"
+          class="follow-status"
+        >
+          Acompanhamento desligado
         </span>
 
       </div>
 
-      <div class="body admin-grid">
+      <div id="map"></div>
 
-        <form
-          id="createUserForm"
-          class="form-grid"
+    </article>
+
+  </section>
+
+
+  <section class="card admin" id="historyCard">
+
+    <div class="card-title">
+      Fotos recentes
+
+      <span
+        id="historyDescription"
+        class="scope"
+      ></span>
+    </div>
+
+    <div class="body">
+
+      <div
+        id="gallery"
+        class="gallery"
+      >
+        <div class="empty">
+          Selecione uma captura.
+        </div>
+      </div>
+
+      <button
+        id="loadMorePhotos"
+        type="button"
+        class="load-more"
+        style="display:none"
+      >
+        Carregar mais fotos
+      </button>
+
+    </div>
+
+  </section>
+
+
+  {% if current_user.is_admin %}
+
+  <div class="admin-toggle">
+
+    <button
+      id="toggleAdminPanel"
+      type="button"
+      class="primary"
+      aria-controls="adminPanel"
+      aria-expanded="false"
+    >
+      Gerenciar usuários
+    </button>
+
+  </div>
+
+
+  <section
+    class="card admin"
+    id="adminPanel"
+    hidden
+  >
+
+    <div class="card-title">
+
+      Usuários do painel
+
+      <span class="scope">
+        Cada usuário visualiza apenas a página associada.
+      </span>
+
+    </div>
+
+    <div class="body admin-grid">
+
+      <form
+        id="createUserForm"
+        class="form-grid"
+      >
+
+        <label for="newUsername">
+          Usuário
+        </label>
+
+        <input
+          id="newUsername"
+          required
+          minlength="3"
+          maxlength="32"
+          autocomplete="username"
+          placeholder="usuario2"
         >
 
-          <label for="newUsername">
-            Usuário
-          </label>
+        <label for="newPassword">
+          Senha inicial
+        </label>
 
-          <input
-            id="newUsername"
-            required
-            minlength="3"
-            maxlength="32"
-            autocomplete="username"
-            placeholder="usuario2"
-          >
+        <input
+          id="newPassword"
+          type="password"
+          required
+          minlength="8"
+          autocomplete="new-password"
+          placeholder="Mínimo de 8 caracteres"
+        >
 
-          <label for="newPassword">
-            Senha inicial
-          </label>
+        <label for="newPageKey">
+          Página associada
+        </label>
 
-          <input
-            id="newPassword"
-            type="password"
-            required
-            minlength="8"
-            autocomplete="new-password"
-            placeholder="Mínimo de 8 caracteres"
-          >
+        <input
+          id="newPageKey"
+          required
+          maxlength="64"
+          pattern="[a-z0-9][a-z0-9_-]*"
+          placeholder="index2"
+        >
 
-          <label for="newPageKey">
-            Página associada
-          </label>
+        <span class="scope">
+          Ex.: <strong>index2</strong> libera somente as capturas de
+          <strong>/index2.html</strong>.
+        </span>
 
-          <input
-            id="newPageKey"
-            required
-            maxlength="64"
-            pattern="[a-z0-9][a-z0-9_-]*"
-            placeholder="index2"
-          >
+        <button
+          type="submit"
+          class="primary"
+        >
+          Adicionar usuário
+        </button>
 
-          <span class="scope">
-            Ex.: <strong>index2</strong> libera somente as capturas de
-            <strong>/index2.html</strong>.
-          </span>
+        <div
+          id="userFormMessage"
+          class="form-message"
+          role="status"
+        ></div>
 
-          <button
-            type="submit"
-            class="primary"
-          >
-            Adicionar usuário
-          </button>
-
-          <div
-            id="userFormMessage"
-            class="form-message"
-            role="status"
-          ></div>
-
-        </form>
+      </form>
 
 
-        <div class="user-list">
+      <div class="user-list">
 
-          <table>
+        <table>
 
-            <thead>
+          <thead>
+            <tr>
+              <th>Usuário</th>
+              <th>Página</th>
+              <th>Status</th>
+              <th>Criado em</th>
+              <th>Ação</th>
+            </tr>
+          </thead>
 
-              <tr>
-                <th>Usuário</th>
-                <th>Página</th>
-                <th>Status</th>
-                <th>Criado em</th>
-                <th>Ação</th>
-              </tr>
+          <tbody id="userRows">
 
-            </thead>
+            <tr>
+              <td colspan="5">
+                Carregando…
+              </td>
+            </tr>
 
-            <tbody id="userRows">
+          </tbody>
 
-              <tr>
-                <td colspan="5">
-                  Carregando…
-                </td>
-              </tr>
-
-            </tbody>
-
-          </table>
-
-        </div>
+        </table>
 
       </div>
 
-    </section>
+    </div>
 
-    {% endif %}
+  </section>
 
-  </main>
+  {% endif %}
 
-
-  <div
-    id="toast"
-    class="toast"
-    role="status"
-    aria-live="polite"
-  ></div>
+</main>
 
 
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<div
+  id="toast"
+  class="toast"
+  role="status"
+  aria-live="polite"
+></div>
 
 
-  <script>
-
-    const currentUser = {{ current_user|tojson }};
-    const isAdmin = Boolean(currentUser.is_admin);
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 
-    const state = {
+<script>
 
-      captures: [],
+  const currentUser = {{ current_user|tojson }};
 
-      currentCaptureId: null,
-
-      capture: null,
-
-      locations: [],
-
-      photos: [],
-
-      currentPhotoId: null,
-
-      hasMorePhotos: false,
-
-      initialized: false,
-
-      /*
-       * IMPORTANTE:
-       * Antes era apenas um número.
-       * Agora é uma lista de objetos de captura.
-       */
-      pendingNotifications: [],
-
-      refreshInProgress: false,
-
-      /*
-       * Controle do mapa.
-       */
-      following: false,
-
-      mapInitializedForCapture: null
-
-    };
+  const isAdmin = Boolean(currentUser.is_admin);
 
 
-    const captureSelect =
-      document.getElementById("captureSelect");
+  /*
+   * ==========================================================
+   * ESTADO PRINCIPAL
+   * ==========================================================
+   */
 
-    const currentPhoto =
-      document.getElementById("currentPhoto");
+  const state = {
 
-    const noPhoto =
-      document.getElementById("noPhoto");
+    captures: [],
 
-    const gallery =
-      document.getElementById("gallery");
+    currentCaptureId: null,
 
-    const notificationBadge =
-      document.getElementById("notificationBadge");
+    capture: null,
 
-    const notificationButton =
-      document.getElementById("notificationButton");
+    locations: [],
 
-    const notificationMenu =
-      document.getElementById("notificationMenu");
+    photos: [],
 
-    const notificationList =
-      document.getElementById("notificationList");
+    currentPhotoId: null,
+
+    hasMorePhotos: false,
+
+    initialized: false,
+
+    pendingNotifications: [],
+
+    knownPhotoTotals: new Map(),
+
+    refreshInProgress: false,
+
+    following: false,
+
+    mapInitializedForCapture: null
+
+  };
 
 
-    const map =
-      L.map("map", {
-        zoomControl: true
-      }).setView(
-        [-14.235, -51.9253],
-        4
-      );
+  /*
+   * ==========================================================
+   * ELEMENTOS
+   * ==========================================================
+   */
+
+  const captureSelect =
+    document.getElementById("captureSelect");
+
+  const currentPhoto =
+    document.getElementById("currentPhoto");
+
+  const noPhoto =
+    document.getElementById("noPhoto");
+
+  const gallery =
+    document.getElementById("gallery");
+
+  const notificationBadge =
+    document.getElementById("notificationBadge");
+
+  const notificationPanel =
+    document.getElementById("notificationPanel");
+
+  const notificationList =
+    document.getElementById("notificationList");
+
+  const map =
+    L.map("map", {
+      zoomControl: true
+    }).setView(
+      [-14.235, -51.9253],
+      4
+    );
+
+  L.tileLayer(
+    "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+    {
+      maxZoom:19,
+      attribution:"© OpenStreetMap"
+    }
+  ).addTo(map);
 
 
-    L.tileLayer(
-      "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+  let mapLayers = [];
+
+  let toastTimer = null;
+
+
+  /*
+   * ==========================================================
+   * INFORMAÇÕES DO USUÁRIO
+   * ==========================================================
+   */
+
+  document.getElementById("userName").textContent =
+    currentUser.username;
+
+  document.getElementById("scopeText").textContent =
+    isAdmin
+      ? "Administrador · todas as páginas"
+      : `Página: ${currentUser.page_key}`;
+
+
+  /*
+   * ==========================================================
+   * FETCH
+   * ==========================================================
+   */
+
+  async function fetchJson(url, options = {}) {
+
+    const response = await fetch(
+      url,
       {
-        maxZoom: 19,
-        attribution: "© OpenStreetMap"
+        cache:"no-store",
+        credentials:"same-origin",
+        ...options
       }
-    ).addTo(map);
+    );
+
+    const data =
+      await response
+        .json()
+        .catch(() => ({}));
+
+    if (response.status === 401) {
+
+      window.location.href = "/login";
+
+      throw new Error("Sessão encerrada.");
+    }
+
+    if (!response.ok || !data.success) {
+
+      throw new Error(
+        data.error ||
+        "Não foi possível concluir a ação."
+      );
+    }
+
+    return data;
+  }
 
 
-    let mapLayers = [];
-    let toastTimer = null;
+  /*
+   * ==========================================================
+   * UTILITÁRIOS
+   * ==========================================================
+   */
+
+  function formatDate(value) {
+
+    if (!value) {
+      return "—";
+    }
+
+    const date = new Date(value);
+
+    return Number.isNaN(date.valueOf())
+      ? "—"
+      : date.toLocaleString("pt-BR");
+  }
 
 
-    document.getElementById("userName").textContent =
-      currentUser.username;
+  function getCaptureById(id) {
+
+    return state.captures.find(
+      capture =>
+        String(capture.capture_id) === String(id)
+    ) || null;
+  }
 
 
-    document.getElementById("scopeText").textContent =
-      isAdmin
-        ? "Administrador · todas as páginas"
-        : `Página: ${currentUser.page_key}`;
+  function getCaptureDisplayName(capture) {
 
+    if (!capture) {
+      return "Captura";
+    }
 
-    async function fetchJson(url, options = {}) {
+    const known =
+      getCaptureById(capture.capture_id);
 
-      const response = await fetch(
-        url,
-        {
-          cache: "no-store",
-          credentials: "same-origin",
-          ...options
-        }
+    const source =
+      known || capture;
+
+    if (source.display_name) {
+      return source.display_name;
+    }
+
+    const index =
+      state.captures.findIndex(
+        item =>
+          String(item.capture_id) ===
+          String(capture.capture_id)
       );
 
+    if (index >= 0) {
 
-      const data =
-        await response.json().catch(() => ({}));
-
-
-      if (response.status === 401) {
-
-        window.location.href = "/login";
-
-        throw new Error("Sessão encerrada.");
-
-      }
-
-
-      if (!response.ok || !data.success) {
-
-        throw new Error(
-          data.error ||
-          "Não foi possível concluir a ação."
-        );
-
-      }
-
-
-      return data;
-
+      return `Captura ${state.captures.length - index}`;
     }
 
-
-    function formatDate(value) {
-
-      if (!value) return "—";
-
-      const date = new Date(value);
-
-      return Number.isNaN(date.valueOf())
-        ? "—"
-        : date.toLocaleString("pt-BR");
-
-    }
+    return `Captura ${capture.capture_id}`;
+  }
 
 
-    function captureLabel(capture, index) {
+  function captureLabel(capture, index) {
 
-      const name =
-        capture.display_name ||
-        `Captura ${state.captures.length - index}`;
+    const name =
+      capture.display_name ||
+      `Captura ${state.captures.length - index}`;
 
-
-      return `${name} · ${capture.page_key} · ${formatDate(capture.created_at)}`;
-
-    }
-
-
-    function getCaptureDisplayName(capture) {
-
-      if (!capture) return "Captura";
-
-      return (
-        capture.display_name ||
-        `Captura ${state.captures.indexOf(capture) >= 0
-          ? state.captures.length -
-            state.captures.indexOf(capture)
-          : capture.capture_id}`
+    const hasNotification =
+      state.pendingNotifications.some(
+        notification =>
+          String(notification.captureId) ===
+          String(capture.capture_id)
       );
 
-    }
+    return (
+      hasNotification ? "🔴 " : ""
+    ) +
+      `${name} · ${capture.page_key} · ${formatDate(capture.created_at)}`;
+  }
 
 
-    function showToast(message) {
+  function showToast(message) {
 
-      const toast =
-        document.getElementById("toast");
+    const toast =
+      document.getElementById("toast");
+
+    toast.textContent = message;
+
+    toast.classList.add("show");
+
+    clearTimeout(toastTimer);
+
+    toastTimer =
+      setTimeout(
+        () => toast.classList.remove("show"),
+        6000
+      );
+  }
 
 
-      toast.textContent = message;
+  /*
+   * ==========================================================
+   * NOTIFICAÇÕES
+   * ==========================================================
+   */
 
-      toast.classList.add("show");
+  function updateNotificationBadge() {
 
-      clearTimeout(toastTimer);
+    const count =
+      state.pendingNotifications.length;
+
+    notificationBadge.textContent =
+      count;
+
+    notificationBadge.style.display =
+      count ? "inline-block" : "none";
+
+    document.title =
+      count
+        ? `(${count}) Painel de capturas`
+        : "Painel de capturas";
+
+    renderNotificationList();
+
+    renderSelector();
+  }
 
 
-      toastTimer =
-        setTimeout(
-          () => toast.classList.remove("show"),
-          5000
-        );
+  function addNotification(notification) {
 
-    }
-
+    state.pendingNotifications.unshift(
+      notification
+    );
 
     /*
-     * ==========================================================
-     * NOTIFICAÇÕES
-     * ==========================================================
+     * Limita a lista para evitar crescimento
+     * indefinido no navegador.
      */
 
-
-    function updateNotificationBadge() {
-
-      const count =
-        state.pendingNotifications.length;
-
-
-      notificationBadge.textContent = count;
-
-      notificationBadge.style.display =
-        count > 0
-          ? "inline-block"
-          : "none";
-
-
-      notificationButton.classList.toggle(
-        "has-new",
-        count > 0
-      );
-
-
-      document.title =
-        count > 0
-          ? `(${count}) Painel de capturas`
-          : "Painel de capturas";
-
-
-      renderNotificationList();
-
-    }
-
-
-    function renderNotificationList() {
-
-      notificationList.replaceChildren();
-
-
-      if (!state.pendingNotifications.length) {
-
-        const empty =
-          document.createElement("div");
-
-
-        empty.className =
-          "notification-empty";
-
-
-        empty.textContent =
-          "Nenhuma captura nova.";
-
-
-        notificationList.appendChild(empty);
-
-        return;
-
-      }
-
-
-      state.pendingNotifications.forEach(
-        notification => {
-
-          const button =
-            document.createElement("button");
-
-
-          button.type = "button";
-
-          button.className =
-            "notification-item";
-
-
-          const title =
-            document.createElement("div");
-
-
-          title.className =
-            "notification-item-title";
-
-
-          title.textContent =
-            notification.title;
-
-
-          const info =
-            document.createElement("div");
-
-
-          info.className =
-            "notification-item-info";
-
-
-          info.textContent =
-            `Página: ${notification.page_key || "—"} · ` +
-            `${formatDate(notification.created_at)}`;
-
-
-          button.append(title, info);
-
-
-          button.addEventListener(
-            "click",
-            async () => {
-
-              /*
-               * Ao clicar na notificação,
-               * abrimos a captura correspondente.
-               */
-
-              removeNotification(
-                notification.capture_id
-              );
-
-
-              notificationMenu.classList.remove(
-                "open"
-              );
-
-
-              notificationButton.setAttribute(
-                "aria-expanded",
-                "false"
-              );
-
-
-              state.currentCaptureId =
-                notification.capture_id;
-
-
-              captureSelect.value =
-                notification.capture_id;
-
-
-              state.photos = [];
-
-              state.currentPhotoId = null;
-
-
-              try {
-
-                await loadCapture(
-                  notification.capture_id
-                );
-
-              } catch (error) {
-
-                showToast(error.message);
-
-              }
-
-            }
-          );
-
-
-          notificationList.appendChild(button);
-
-        }
-      );
-
-    }
-
-
-    function removeNotification(captureId) {
+    if (
+      state.pendingNotifications.length > 100
+    ) {
 
       state.pendingNotifications =
-        state.pendingNotifications.filter(
-          notification =>
-            notification.capture_id !== captureId
-        );
-
-
-      updateNotificationBadge();
-
+        state.pendingNotifications.slice(0,100);
     }
 
+    updateNotificationBadge();
+  }
 
-    function clearNotifications() {
 
-      state.pendingNotifications = [];
+  function notifyNewCaptures(newCaptures) {
 
-      updateNotificationBadge();
-
+    if (!newCaptures.length) {
+      return;
     }
 
+    newCaptures.forEach(capture => {
 
-    function notifyNewCaptures(newCaptures) {
+      const name =
+        getCaptureDisplayName(capture);
 
-      if (!newCaptures.length) return;
+      addNotification({
 
+        id:
+          `capture-${capture.capture_id}-${Date.now()}`,
 
-      newCaptures.forEach(capture => {
+        type:"capture",
 
-        /*
-         * Evita que a mesma captura seja
-         * adicionada duas vezes.
-         */
+        captureId:
+          capture.capture_id,
 
-        const alreadyExists =
-          state.pendingNotifications.some(
-            notification =>
-              notification.capture_id ===
-              capture.capture_id
-          );
+        title:
+          "Nova captura",
 
+        message:
+          `${name} recebeu uma nova captura.`,
 
-        if (alreadyExists) return;
-
-
-        state.pendingNotifications.unshift({
-
-          capture_id:
-            capture.capture_id,
-
-          title:
-            getCaptureDisplayName(capture),
-
-          page_key:
-            capture.page_key,
-
-          created_at:
-            capture.created_at
-
-        });
+        createdAt:
+          new Date().toISOString()
 
       });
 
-
-      updateNotificationBadge();
-
-
-      /*
-       * Mostra no painel qual captura chegou.
-       */
-
-      const names =
-        newCaptures.map(
-          capture =>
-            getCaptureDisplayName(capture)
-        );
+    });
 
 
-      let message;
+    const message =
+      newCaptures.length === 1
+        ? `Nova captura recebida: ${getCaptureDisplayName(newCaptures[0])}.`
+        : `${newCaptures.length} novas capturas recebidas.`;
 
 
-      if (names.length === 1) {
-
-        message =
-          `Nova captura recebida: ${names[0]}.`;
-
-      } else {
-
-        message =
-          `${names.length} novas capturas recebidas: ` +
-          names.join(", ") +
-          ".";
-
-      }
+    showToast(message);
 
 
-      showToast(message);
+    if (
+      "Notification" in window &&
+      Notification.permission === "granted"
+    ) {
 
-
-      /*
-       * Notificação nativa do navegador.
-       */
-
-      if (
-        "Notification" in window &&
-        Notification.permission === "granted"
-      ) {
-
-        try {
-
-          new Notification(
-            "Nova captura",
-            {
-              body: message
-            }
-          );
-
-        } catch (error) {
-
-          console.warn(
-            "Não foi possível criar notificação:",
-            error
-          );
-
+      new Notification(
+        "Nova captura",
+        {
+          body:message
         }
+      );
+    }
 
-      }
+  }
+
+
+  function notifyNewPhotos(
+    capture,
+    oldTotal,
+    newTotal
+  ) {
+
+    const difference =
+      Math.max(
+        1,
+        newTotal - oldTotal
+      );
+
+    const name =
+      getCaptureDisplayName(capture);
+
+
+    addNotification({
+
+      id:
+        `photo-${capture.capture_id}-${newTotal}-${Date.now()}`,
+
+      type:"photo",
+
+      captureId:
+        capture.capture_id,
+
+      title:
+        difference === 1
+          ? "Nova foto"
+          : "Novas fotos",
+
+      message:
+        difference === 1
+          ? `${name} recebeu uma nova foto.`
+          : `${name} recebeu ${difference} novas fotos.`,
+
+      createdAt:
+        new Date().toISOString(),
+
+      oldTotal,
+
+      newTotal
+
+    });
+
+
+    const message =
+      difference === 1
+        ? `Nova foto em ${name}.`
+        : `${difference} novas fotos em ${name}.`;
+
+
+    showToast(message);
+
+
+    if (
+      "Notification" in window &&
+      Notification.permission === "granted"
+    ) {
+
+      new Notification(
+        "Nova foto capturada",
+        {
+          body:message
+        }
+      );
 
     }
 
-
-    /*
-     * ==========================================================
-     * LISTA DE CAPTURAS
-     * ==========================================================
-     */
+  }
 
 
-    function renderSelector() {
+  function renderNotificationList() {
 
-      const selected =
-        state.currentCaptureId;
+    if (
+      !state.pendingNotifications.length
+    ) {
+
+      notificationList.innerHTML =
+        '<div class="notification-empty">Nenhuma notificação.</div>';
+
+      return;
+    }
 
 
-      captureSelect.replaceChildren();
+    notificationList.replaceChildren();
 
 
-      if (!state.captures.length) {
+    state.pendingNotifications.forEach(
+      notification => {
+
+        const item =
+          document.createElement("div");
+
+        item.className =
+          "notification-item";
+
+
+        const title =
+          document.createElement("div");
+
+        title.className =
+          "notification-item-title";
+
+
+        const icon =
+          notification.type === "photo"
+            ? "📷"
+            : "🔔";
+
+
+        title.textContent =
+          `${icon} ${notification.title}`;
+
+
+        const info =
+          document.createElement("div");
+
+        info.className =
+          "notification-item-info";
+
+
+        info.textContent =
+          `${notification.message} · ${formatDate(notification.createdAt)}`;
+
+
+        item.append(
+          title,
+          info
+        );
+
+
+        item.addEventListener(
+          "click",
+          async () => {
+
+            state.currentCaptureId =
+              notification.captureId;
+
+            state.photos = [];
+
+            state.currentPhotoId =
+              null;
+
+            await loadCapture(
+              notification.captureId
+            );
+
+            removeNotificationsForCapture(
+              notification.captureId
+            );
+
+            notificationPanel.classList.remove(
+              "open"
+            );
+
+          }
+        );
+
+
+        notificationList.append(item);
+
+      }
+    );
+
+  }
+
+
+  function removeNotificationsForCapture(
+    captureId
+  ) {
+
+    state.pendingNotifications =
+      state.pendingNotifications.filter(
+        notification =>
+          String(notification.captureId) !==
+          String(captureId)
+      );
+
+    updateNotificationBadge();
+  }
+
+
+  /*
+   * ==========================================================
+   * SELETOR DE CAPTURAS
+   * ==========================================================
+   */
+
+  function renderSelector() {
+
+    const selected =
+      state.currentCaptureId;
+
+    captureSelect.replaceChildren();
+
+
+    if (!state.captures.length) {
+
+      captureSelect.add(
+        new Option(
+          "Nenhuma captura disponível",
+          ""
+        )
+      );
+
+      return;
+    }
+
+
+    state.captures.forEach(
+      (capture,index) => {
 
         captureSelect.add(
           new Option(
-            "Nenhuma captura disponível",
-            ""
-          )
-        );
-
-        return;
-
-      }
-
-
-      state.captures.forEach(
-        (capture, index) => {
-
-          const isNew =
-            state.pendingNotifications.some(
-              notification =>
-                notification.capture_id ===
-                capture.capture_id
-            );
-
-
-          const label =
             captureLabel(
               capture,
               index
+            ),
+            capture.capture_id
+          )
+        );
+
+      }
+    );
+
+
+    captureSelect.value =
+      state.captures.some(
+        capture =>
+          String(capture.capture_id) ===
+          String(selected)
+      )
+        ? selected
+        : state.captures[0].capture_id;
+
+  }
+
+
+  /*
+   * ==========================================================
+   * CARREGAR CAPTURAS
+   *
+   * IMPORTANTE:
+   *
+   * Aqui é feita a comparação de photo_total
+   * para TODAS as capturas.
+   *
+   * Assim, uma nova foto é detectada mesmo
+   * quando a captura não está aberta.
+   * ==========================================================
+   */
+
+  async function loadCaptures({
+    notify = false
+  } = {}) {
+
+    const previousIds =
+      new Set(
+        state.captures.map(
+          capture =>
+            String(capture.capture_id)
+        )
+      );
+
+
+    const data =
+      await fetchJson(
+        "/api/captures"
+      );
+
+
+    const receivedCaptures =
+      data.captures || [];
+
+
+    const newCaptures =
+      state.initialized && notify
+        ? receivedCaptures.filter(
+            capture =>
+              !previousIds.has(
+                String(capture.capture_id)
+              )
+          )
+        : [];
+
+
+    /*
+     * Primeiro atualizamos a lista.
+     * Isso permite que getCaptureDisplayName()
+     * encontre corretamente a captura.
+     */
+
+    state.captures =
+      receivedCaptures;
+
+
+    /*
+     * IDs de capturas que acabaram de nascer.
+     *
+     * Não geraremos "nova foto" para elas,
+     * pois a própria notificação de nova captura
+     * já representa o evento.
+     */
+
+    const newCaptureIds =
+      new Set(
+        newCaptures.map(
+          capture =>
+            String(capture.capture_id)
+        )
+      );
+
+
+    /*
+     * Detecta novas fotos em todas as capturas.
+     */
+
+    if (
+      state.initialized &&
+      notify
+    ) {
+
+      receivedCaptures.forEach(
+        capture => {
+
+          const key =
+            String(capture.capture_id);
+
+          const newTotal =
+            Number(
+              capture.photo_total || 0
             );
 
 
-          const optionText =
-            isNew
-              ? `🔴 NOVA · ${label}`
-              : label;
+          const oldTotal =
+            state.knownPhotoTotals.has(key)
+              ? Number(
+                  state.knownPhotoTotals.get(key)
+                )
+              : null;
 
 
-          captureSelect.add(
-            new Option(
-              optionText,
-              capture.capture_id
+          /*
+           * Só compara quando já conhecíamos
+           * essa captura.
+           */
+
+          if (
+            oldTotal !== null &&
+            !newCaptureIds.has(key) &&
+            newTotal > oldTotal
+          ) {
+
+            notifyNewPhotos(
+              capture,
+              oldTotal,
+              newTotal
+            );
+
+          }
+
+
+          /*
+           * Atualiza a quantidade conhecida.
+           */
+
+          state.knownPhotoTotals.set(
+            key,
+            newTotal
+          );
+
+        }
+      );
+
+    } else {
+
+      /*
+       * Primeira carga:
+       * apenas cria a linha de base.
+       *
+       * Não dispara notificações.
+       */
+
+      receivedCaptures.forEach(
+        capture => {
+
+          state.knownPhotoTotals.set(
+            String(capture.capture_id),
+            Number(
+              capture.photo_total || 0
             )
           );
 
         }
       );
 
+    }
 
-      captureSelect.value =
-        state.captures.some(
-          capture =>
-            capture.capture_id === selected
+
+    if (
+      !state.currentCaptureId ||
+      !state.captures.some(
+        capture =>
+          String(capture.capture_id) ===
+          String(state.currentCaptureId)
+      )
+    ) {
+
+      state.currentCaptureId =
+        state.captures[0]?.capture_id ||
+        null;
+
+    }
+
+
+    renderSelector();
+
+
+    if (newCaptures.length) {
+
+      notifyNewCaptures(
+        newCaptures
+      );
+
+    }
+
+
+    state.initialized = true;
+
+  }
+
+
+  /*
+   * ==========================================================
+   * FOTOS
+   * ==========================================================
+   */
+
+  function mergePhotos(
+    newPhotos,
+    preserveGallery
+  ) {
+
+    if (!preserveGallery) {
+      return newPhotos;
+    }
+
+
+    const seen =
+      new Set(
+        newPhotos.map(
+          photo => photo.id
         )
-          ? selected
-          : state.captures[0].capture_id;
+      );
+
+
+    return [
+      ...newPhotos,
+      ...state.photos.filter(
+        photo =>
+          !seen.has(photo.id)
+      )
+    ];
+
+  }
+
+
+  async function loadCapture(
+    captureId,
+    {
+      preserveGallery = false
+    } = {}
+  ) {
+
+    if (!captureId) {
+
+      clearDashboard();
+
+      return;
+    }
+
+
+    const data =
+      await fetchJson(
+        `/api/captures/${encodeURIComponent(captureId)}?photo_limit=24&location_limit=300`
+      );
+
+
+    state.currentCaptureId =
+      captureId;
+
+
+    state.capture =
+      data.capture;
+
+
+    state.locations =
+      data.locations || [];
+
+
+    state.photos =
+      mergePhotos(
+        data.photos || [],
+        preserveGallery
+      );
+
+
+    state.hasMorePhotos =
+      Boolean(
+        data.has_more_photos
+      );
+
+
+    if (
+      !state.photos.some(
+        photo =>
+          photo.id ===
+          state.currentPhotoId
+      )
+    ) {
+
+      state.currentPhotoId =
+        state.photos[0]?.id ||
+        null;
 
     }
 
 
     /*
-     * ==========================================================
-     * CARREGAMENTO DAS CAPTURAS
-     * ==========================================================
+     * Atualiza a linha de base da foto da
+     * captura aberta, sem gerar notificação.
+     *
+     * A detecção das novas fotos já é feita
+     * em loadCaptures() para todas as capturas.
      */
 
+    if (state.capture) {
 
-    async function loadCaptures({
-      notify = false
-    } = {}) {
-
-
-      /*
-       * Guardamos os IDs ANTES da consulta.
-       */
-
-      const previousIds =
-        new Set(
-          state.captures.map(
-            capture =>
-              String(capture.capture_id)
-          )
-        );
-
-
-      const data =
-        await fetchJson(
-          "/api/captures"
-        );
-
-
-      const receivedCaptures =
-        data.captures || [];
-
-
-      /*
-       * Identificamos novas capturas
-       * ANTES de substituir state.captures.
-       */
-
-      let newCaptures = [];
-
-
-      if (state.initialized && notify) {
-
-        newCaptures =
-          receivedCaptures.filter(
-            capture =>
-              !previousIds.has(
-                String(capture.capture_id)
-              )
-          );
-
-      }
-
-
-      state.captures =
-        receivedCaptures;
-
-
-      /*
-       * Se a captura selecionada não existe mais,
-       * selecionamos a primeira.
-       */
-
-      if (
-        !state.currentCaptureId ||
-        !state.captures.some(
-          capture =>
-            capture.capture_id ===
-            state.currentCaptureId
+      state.knownPhotoTotals.set(
+        String(state.capture.capture_id),
+        Number(
+          state.capture.photo_total || 0
         )
-      ) {
-
-        state.currentCaptureId =
-          state.captures[0]?.capture_id ||
-          null;
-
-      }
-
-
-      /*
-       * Primeiro atualizamos o seletor.
-       */
-
-      renderSelector();
-
-
-      /*
-       * Depois criamos as notificações.
-       */
-
-      if (newCaptures.length) {
-
-        notifyNewCaptures(
-          newCaptures
-        );
-
-        /*
-         * O seletor é renderizado novamente
-         * para marcar "🔴 NOVA".
-         */
-
-        renderSelector();
-
-      }
-
-
-      state.initialized = true;
+      );
 
     }
 
 
-    function mergePhotos(
-      newPhotos,
-      preserveGallery
-    ) {
+    renderDashboard();
 
-      if (!preserveGallery) {
+  }
 
-        return newPhotos;
+
+  function clearDashboard() {
+
+    state.capture =
+      null;
+
+    state.photos =
+      [];
+
+    state.locations =
+      [];
+
+    state.currentPhotoId =
+      null;
+
+    renderDashboard();
+
+  }
+
+
+  /*
+   * ==========================================================
+   * DASHBOARD
+   * ==========================================================
+   */
+
+  function renderDashboard() {
+
+    const capture =
+      state.capture;
+
+
+    document.getElementById(
+      "renameButton"
+    ).disabled = !capture;
+
+
+    document.getElementById(
+      "deleteButton"
+    ).disabled = !capture;
+
+
+    if (!capture) {
+
+      document.getElementById(
+        "captureName"
+      ).textContent = "—";
+
+      document.getElementById(
+        "pageKey"
+      ).textContent = "—";
+
+      document.getElementById(
+        "updatedAt"
+      ).textContent = "—";
+
+      document.getElementById(
+        "locationCount"
+      ).textContent = "0";
+
+      document.getElementById(
+        "photoCount"
+      ).textContent = "0";
+
+      document.getElementById(
+        "coordinates"
+      ).textContent = "—";
+
+      document.getElementById(
+        "mapsButton"
+      ).style.display = "none";
+
+
+      renderPhotos();
+
+      renderMap();
+
+      return;
+    }
+
+
+    document.getElementById(
+      "captureName"
+    ).textContent =
+      capture.display_name ||
+      "Sem nome";
+
+
+    document.getElementById(
+      "pageKey"
+    ).textContent =
+      capture.page_key;
+
+
+    document.getElementById(
+      "updatedAt"
+    ).textContent =
+      formatDate(
+        capture.updated_at
+      );
+
+
+    document.getElementById(
+      "locationCount"
+    ).textContent =
+      capture.location_total;
+
+
+    document.getElementById(
+      "photoCount"
+    ).textContent =
+      capture.photo_total;
+
+
+    document.getElementById(
+      "coordinates"
+    ).textContent =
+      capture.latitude == null
+        ? "—"
+        : `${Number(capture.latitude).toFixed(6)}, ${Number(capture.longitude).toFixed(6)}`;
+
+
+    const maps =
+      document.getElementById(
+        "mapsButton"
+      );
+
+
+    maps.style.display =
+      capture.maps_url
+        ? "block"
+        : "none";
+
+
+    maps.href =
+      capture.maps_url || "#";
+
+
+    renderPhotos();
+
+    renderMap();
+
+  }
+
+
+  /*
+   * ==========================================================
+   * FOTOS DA CAPTURA
+   * ==========================================================
+   */
+
+  function selectedPhotoIndex() {
+
+    return state.photos.findIndex(
+      photo =>
+        photo.id ===
+        state.currentPhotoId
+    );
+
+  }
+
+
+  function preloadAdjacentPhotos(
+    index
+  ) {
+
+    [
+      state.photos[index - 1],
+      state.photos[index + 1]
+    ]
+      .filter(Boolean)
+      .forEach(photo => {
+
+        const image =
+          new Image();
+
+        image.src =
+          photo.photo_url;
+
+      });
+
+  }
+
+
+  function renderPhotos() {
+
+    const photo =
+      state.photos.find(
+        item =>
+          item.id ===
+          state.currentPhotoId
+      );
+
+
+    const currentIndex =
+      selectedPhotoIndex();
+
+
+    if (!photo) {
+
+      currentPhoto.style.display =
+        "none";
+
+      noPhoto.style.display =
+        "block";
+
+      document.getElementById(
+        "photoCounter"
+      ).textContent =
+        "Nenhuma foto";
+
+
+      document.getElementById(
+        "photoStatus"
+      ).textContent =
+        "";
+
+    } else {
+
+      noPhoto.style.display =
+        "none";
+
+      currentPhoto.style.display =
+        "block";
+
+
+      if (
+        currentPhoto.dataset.photoId !==
+        String(photo.id)
+      ) {
+
+        currentPhoto.src =
+          photo.photo_url;
+
+        currentPhoto.dataset.photoId =
+          photo.id;
 
       }
 
 
-      const seen =
+      document.getElementById(
+        "photoCounter"
+      ).textContent =
+        `Foto carregada ${currentIndex + 1} de ${state.capture.photo_total}`;
+
+
+      document.getElementById(
+        "photoStatus"
+      ).textContent =
+        formatDate(
+          photo.created_at
+        );
+
+
+      preloadAdjacentPhotos(
+        currentIndex
+      );
+
+    }
+
+
+    document.getElementById(
+      "previousPhoto"
+    ).disabled =
+      currentIndex <= 0;
+
+
+    document.getElementById(
+      "nextPhoto"
+    ).disabled =
+      !photo ||
+      (
+        currentIndex >=
+        state.photos.length - 1 &&
+        !state.hasMorePhotos
+      );
+
+
+    document.getElementById(
+      "historyDescription"
+    ).textContent =
+      state.capture
+        ? `${state.photos.length} de ${state.capture.photo_total} carregadas`
+        : "";
+
+
+    gallery.replaceChildren();
+
+
+    if (!state.photos.length) {
+
+      gallery.innerHTML =
+        '<div class="empty">Nenhuma foto nesta captura.</div>';
+
+    } else {
+
+      const fragment =
+        document.createDocumentFragment();
+
+
+      state.photos.forEach(
+        photoItem => {
+
+          const item =
+            document.createElement(
+              "button"
+            );
+
+
+          item.type =
+            "button";
+
+
+          item.className =
+            `thumb${
+              photoItem.id ===
+              state.currentPhotoId
+                ? " selected"
+                : ""
+            }`;
+
+
+          const image =
+            document.createElement(
+              "img"
+            );
+
+
+          image.src =
+            photoItem.photo_url;
+
+
+          image.alt =
+            `Foto de ${formatDate(photoItem.created_at)}`;
+
+
+          image.loading =
+            "lazy";
+
+
+          image.decoding =
+            "async";
+
+
+          const label =
+            document.createElement(
+              "small"
+            );
+
+
+          label.textContent =
+            formatDate(
+              photoItem.created_at
+            );
+
+
+          item.append(
+            image,
+            label
+          );
+
+
+          item.addEventListener(
+            "click",
+            () => {
+
+              state.currentPhotoId =
+                photoItem.id;
+
+              renderPhotos();
+
+            }
+          );
+
+
+          fragment.append(
+            item
+          );
+
+        }
+      );
+
+
+      gallery.append(
+        fragment
+      );
+
+    }
+
+
+    document.getElementById(
+      "loadMorePhotos"
+    ).style.display =
+      state.hasMorePhotos
+        ? "block"
+        : "none";
+
+  }
+
+
+  async function loadMorePhotos() {
+
+    const lastPhoto =
+      state.photos[
+        state.photos.length - 1
+      ];
+
+
+    if (
+      !state.currentCaptureId ||
+      !lastPhoto ||
+      !state.hasMorePhotos
+    ) {
+
+      return;
+
+    }
+
+
+    const button =
+      document.getElementById(
+        "loadMorePhotos"
+      );
+
+
+    button.disabled =
+      true;
+
+    button.textContent =
+      "Carregando…";
+
+
+    try {
+
+      const data =
+        await fetchJson(
+          `/api/captures/${encodeURIComponent(state.currentCaptureId)}/photos?before_id=${encodeURIComponent(lastPhoto.id)}&limit=24`
+        );
+
+
+      const knownIds =
         new Set(
-          newPhotos.map(
+          state.photos.map(
             photo => photo.id
           )
         );
 
 
-      return [
-        ...newPhotos,
-        ...state.photos.filter(
-          photo =>
-            !seen.has(photo.id)
-        )
-      ];
-
-    }
-
-
-    async function loadCapture(
-      captureId,
-      {
-        preserveGallery = false
-      } = {}
-    ) {
-
-
-      if (!captureId) {
-
-        clearDashboard();
-
-        return;
-
-      }
-
-
-      /*
-       * Se mudou de captura,
-       * permitimos que o mapa faça seu
-       * enquadramento inicial novamente.
-       */
-
-      if (
-        state.currentCaptureId !==
-        captureId
-      ) {
-
-        state.mapInitializedForCapture =
-          null;
-
-      }
-
-
-      const data =
-        await fetchJson(
-          `/api/captures/${encodeURIComponent(captureId)}?photo_limit=24&location_limit=300`
-        );
-
-
-      state.currentCaptureId =
-        captureId;
-
-
-      state.capture =
-        data.capture;
-
-
-      state.locations =
-        data.locations || [];
-
-
-      state.photos =
-        mergePhotos(
-          data.photos || [],
-          preserveGallery
-        );
+      state.photos.push(
+        ...(data.photos || [])
+          .filter(
+            photo =>
+              !knownIds.has(
+                photo.id
+              )
+          )
+      );
 
 
       state.hasMorePhotos =
@@ -1812,492 +2365,393 @@
         );
 
 
-      if (
-        !state.photos.some(
-          photo =>
-            photo.id ===
-            state.currentPhotoId
-        )
-      ) {
-
-        state.currentPhotoId =
-          state.photos[0]?.id ||
-          null;
-
-      }
-
-
-      renderDashboard();
-
-    }
-
-
-    function clearDashboard() {
-
-      state.capture = null;
-
-      state.photos = [];
-
-      state.locations = [];
-
-      state.currentPhotoId = null;
-
-      state.mapInitializedForCapture =
-        null;
-
-
-      renderDashboard();
-
-    }
-
-
-    function renderDashboard() {
-
-      const capture =
-        state.capture;
-
-
-      document.getElementById(
-        "renameButton"
-      ).disabled = !capture;
-
-
-      document.getElementById(
-        "deleteButton"
-      ).disabled = !capture;
-
-
-      if (!capture) {
-
-        document.getElementById(
-          "captureName"
-        ).textContent = "—";
-
-
-        document.getElementById(
-          "pageKey"
-        ).textContent = "—";
-
-
-        document.getElementById(
-          "updatedAt"
-        ).textContent = "—";
-
-
-        document.getElementById(
-          "locationCount"
-        ).textContent = "0";
-
-
-        document.getElementById(
-          "photoCount"
-        ).textContent = "0";
-
-
-        document.getElementById(
-          "coordinates"
-        ).textContent = "—";
-
-
-        document.getElementById(
-          "mapsButton"
-        ).style.display = "none";
-
-
-        renderPhotos();
-
-        renderMap();
-
-        return;
-
-      }
-
-
-      document.getElementById(
-        "captureName"
-      ).textContent =
-        capture.display_name ||
-        "Sem nome";
-
-
-      document.getElementById(
-        "pageKey"
-      ).textContent =
-        capture.page_key;
-
-
-      document.getElementById(
-        "updatedAt"
-      ).textContent =
-        formatDate(
-          capture.updated_at
-        );
-
-
-      document.getElementById(
-        "locationCount"
-      ).textContent =
-        capture.location_total;
-
-
-      document.getElementById(
-        "photoCount"
-      ).textContent =
-        capture.photo_total;
-
-
-      document.getElementById(
-        "coordinates"
-      ).textContent =
-        capture.latitude == null
-          ? "—"
-          : `${Number(capture.latitude).toFixed(6)}, ${Number(capture.longitude).toFixed(6)}`;
-
-
-      const maps =
-        document.getElementById(
-          "mapsButton"
-        );
-
-
-      maps.style.display =
-        capture.maps_url
-          ? "block"
-          : "none";
-
-
-      maps.href =
-        capture.maps_url || "#";
-
-
       renderPhotos();
 
-      renderMap();
+    } catch (error) {
+
+      showToast(
+        error.message
+      );
+
+    } finally {
+
+      button.disabled =
+        false;
+
+      button.textContent =
+        "Carregar mais fotos";
 
     }
+
+  }
+
+
+  /*
+   * ==========================================================
+   * MAPA
+   * ==========================================================
+   */
+
+  function clearMapLayers() {
+
+    mapLayers.forEach(
+      layer =>
+        map.removeLayer(layer)
+    );
+
+    mapLayers = [];
+
+  }
+
+
+  function renderMap() {
+
+    clearMapLayers();
+
+
+    if (
+      !state.locations.length
+    ) {
+
+      return;
+
+    }
+
+
+    const points =
+      state.locations.map(
+        location => [
+          Number(location.latitude),
+          Number(location.longitude)
+        ]
+      );
 
 
     /*
-     * ==========================================================
-     * FOTOS
-     * ==========================================================
+     * Linha da trajetória.
      */
 
+    if (
+      points.length > 1
+    ) {
 
-    function selectedPhotoIndex() {
+      const line =
+        L.polyline(
+          points,
+          {
+            color:"#2563eb",
+            weight:4
+          }
+        ).addTo(map);
 
-      return state.photos.findIndex(
-        photo =>
-          photo.id ===
-          state.currentPhotoId
+
+      mapLayers.push(
+        line
       );
 
     }
 
 
-    function preloadAdjacentPhotos(index) {
+    /*
+     * Pontos.
+     */
 
-      [
-        state.photos[index - 1],
-        state.photos[index + 1]
-      ]
-        .filter(Boolean)
-        .forEach(
-          photo => {
+    state.locations.forEach(
+      (location,index) => {
 
-            const image =
-              new Image();
+        const marker =
+          L.circleMarker(
+            [
+              Number(location.latitude),
+              Number(location.longitude)
+            ],
+            {
+              radius:4,
+              color:"#2563eb"
+            }
+          )
+          .bindPopup(
+            `Posição ${index + 1}<br>${formatDate(location.created_at)}`
+          )
+          .addTo(map);
 
 
-            image.src =
-              photo.photo_url;
-
-          }
+        mapLayers.push(
+          marker
         );
+
+      }
+    );
+
+
+    /*
+     * Última posição.
+     */
+
+    const current =
+      L.marker(
+        points[
+          points.length - 1
+        ]
+      )
+      .bindPopup(
+        "Última posição"
+      )
+      .addTo(map);
+
+
+    mapLayers.push(
+      current
+    );
+
+
+    /*
+     * Seguir:
+     *
+     * Quando ativado, o mapa acompanha
+     * somente a última posição.
+     *
+     * Quando desligado, não fazemos
+     * setView/fitBounds em cada atualização.
+     */
+
+    if (
+      state.following
+    ) {
+
+      map.setView(
+        points[
+          points.length - 1
+        ],
+        Math.max(
+          map.getZoom(),
+          16
+        )
+      );
+
+      return;
 
     }
 
 
-    function renderPhotos() {
-
-      const photo =
-        state.photos.find(
-          item =>
-            item.id ===
-            state.currentPhotoId
-        );
-
-
-      const currentIndex =
-        selectedPhotoIndex();
-
-
-      if (!photo) {
-
-        currentPhoto.style.display =
-          "none";
-
-
-        noPhoto.style.display =
-          "block";
-
-
-        document.getElementById(
-          "photoCounter"
-        ).textContent =
-          "Nenhuma foto";
-
-
-        document.getElementById(
-          "photoStatus"
-        ).textContent = "";
-
-      } else {
-
-        noPhoto.style.display =
-          "none";
-
-
-        currentPhoto.style.display =
-          "block";
-
-
-        if (
-          currentPhoto.dataset.photoId !==
-          String(photo.id)
-        ) {
-
-          currentPhoto.src =
-            photo.photo_url;
-
-
-          currentPhoto.dataset.photoId =
-            photo.id;
-
-        }
-
-
-        document.getElementById(
-          "photoCounter"
-        ).textContent =
-          `Foto carregada ${currentIndex + 1} de ${state.capture.photo_total}`;
-
-
-        document.getElementById(
-          "photoStatus"
-        ).textContent =
-          formatDate(
-            photo.created_at
-          );
-
-
-        preloadAdjacentPhotos(
-          currentIndex
-        );
-
-      }
-
-
-      document.getElementById(
-        "previousPhoto"
-      ).disabled =
-        currentIndex <= 0;
-
-
-      document.getElementById(
-        "nextPhoto"
-      ).disabled =
-        !photo ||
-        (
-          currentIndex >=
-          state.photos.length - 1 &&
-          !state.hasMorePhotos
-        );
-
-
-      document.getElementById(
-        "historyDescription"
-      ).textContent =
-        state.capture
-          ? `${state.photos.length} de ${state.capture.photo_total} carregadas`
-          : "";
-
-
-      gallery.replaceChildren();
-
-
-      if (!state.photos.length) {
-
-        gallery.innerHTML =
-          '<div class="empty">Nenhuma foto nesta captura.</div>';
-
-      } else {
-
-        const fragment =
-          document.createDocumentFragment();
-
-
-        state.photos.forEach(
-          photoItem => {
-
-            const item =
-              document.createElement(
-                "button"
-              );
-
-
-            item.type = "button";
-
-
-            item.className =
-              `thumb${
-                photoItem.id ===
-                state.currentPhotoId
-                  ? " selected"
-                  : ""
-              }`;
-
-
-            const image =
-              document.createElement(
-                "img"
-              );
-
-
-            image.src =
-              photoItem.photo_url;
-
-
-            image.alt =
-              `Foto de ${formatDate(photoItem.created_at)}`;
-
-
-            image.loading =
-              "lazy";
-
-
-            image.decoding =
-              "async";
-
-
-            const label =
-              document.createElement(
-                "small"
-              );
-
-
-            label.textContent =
-              formatDate(
-                photoItem.created_at
-              );
-
-
-            item.append(
-              image,
-              label
-            );
-
-
-            item.addEventListener(
-              "click",
-              () => {
-
-                state.currentPhotoId =
-                  photoItem.id;
-
-
-                renderPhotos();
-
-              }
-            );
-
-
-            fragment.append(item);
-
-          }
-        );
-
-
-        gallery.append(fragment);
-
-      }
-
-
-      document.getElementById(
-        "loadMorePhotos"
-      ).style.display =
-        state.hasMorePhotos
-          ? "block"
-          : "none";
-
-    }
-
-
-    async function loadMorePhotos() {
-
-      const lastPhoto =
-        state.photos[
-          state.photos.length - 1
-        ];
+    /*
+     * Só enquadra automaticamente a primeira
+     * vez que abrimos uma captura.
+     *
+     * Isso evita que o mapa fique "pulando"
+     * a cada atualização de localização.
+     */
+
+    if (
+      state.mapInitializedForCapture !==
+      String(state.currentCaptureId)
+    ) {
+
+      state.mapInitializedForCapture =
+        String(state.currentCaptureId);
 
 
       if (
-        !state.currentCaptureId ||
-        !lastPhoto ||
-        !state.hasMorePhotos
+        points.length === 1
       ) {
 
-        return;
+        map.setView(
+          points[0],
+          16
+        );
+
+      } else {
+
+        map.fitBounds(
+          points,
+          {
+            padding:[28,28],
+            maxZoom:16
+          }
+        );
 
       }
 
+    }
 
-      const button =
-        document.getElementById(
-          "loadMorePhotos"
-        );
+  }
 
 
-      button.disabled = true;
+  function updateFollowStatus() {
 
-      button.textContent =
-        "Carregando…";
+    const status =
+      document.getElementById(
+        "followStatus"
+      );
+
+
+    const followButton =
+      document.getElementById(
+        "followButton"
+      );
+
+
+    const stopButton =
+      document.getElementById(
+        "stopFollowButton"
+      );
+
+
+    if (
+      state.following
+    ) {
+
+      status.textContent =
+        "Acompanhando última posição";
+
+      followButton.disabled =
+        true;
+
+      stopButton.disabled =
+        false;
+
+    } else {
+
+      status.textContent =
+        "Acompanhamento desligado";
+
+      followButton.disabled =
+        false;
+
+      stopButton.disabled =
+        true;
+
+    }
+
+  }
+
+
+  function followLastPosition() {
+
+    state.following =
+      true;
+
+
+    updateFollowStatus();
+
+
+    if (
+      !state.locations.length
+    ) {
+
+      showToast(
+        "Ainda não há posições para acompanhar."
+      );
+
+      return;
+
+    }
+
+
+    const last =
+      state.locations[
+        state.locations.length - 1
+      ];
+
+
+    const point = [
+      Number(last.latitude),
+      Number(last.longitude)
+    ];
+
+
+    map.setView(
+      point,
+      Math.max(
+        map.getZoom(),
+        16
+      )
+    );
+
+
+    renderMap();
+
+  }
+
+
+  function stopFollowing() {
+
+    state.following =
+      false;
+
+    updateFollowStatus();
+
+  }
+
+
+  function goToLastPosition() {
+
+    if (
+      !state.locations.length
+    ) {
+
+      showToast(
+        "Nenhuma posição disponível."
+      );
+
+      return;
+
+    }
+
+
+    const last =
+      state.locations[
+        state.locations.length - 1
+      ];
+
+
+    map.setView(
+      [
+        Number(last.latitude),
+        Number(last.longitude)
+      ],
+      16
+    );
+
+  }
+
+
+  /*
+   * ==========================================================
+   * EVENTOS DE CAPTURA
+   * ==========================================================
+   */
+
+  captureSelect.addEventListener(
+    "change",
+    async () => {
+
+      state.currentCaptureId =
+        captureSelect.value ||
+        null;
+
+
+      state.photos =
+        [];
+
+      state.currentPhotoId =
+        null;
+
+
+      state.mapInitializedForCapture =
+        null;
+
+
+      removeNotificationsForCapture(
+        state.currentCaptureId
+      );
 
 
       try {
 
-        const data =
-          await fetchJson(
-            `/api/captures/${encodeURIComponent(state.currentCaptureId)}/photos?before_id=${encodeURIComponent(lastPhoto.id)}&limit=24`
-          );
-
-
-        const knownIds =
-          new Set(
-            state.photos.map(
-              photo => photo.id
-            )
-          );
-
-
-        state.photos.push(
-          ...(data.photos || [])
-            .filter(
-              photo =>
-                !knownIds.has(
-                  photo.id
-                )
-            )
+        await loadCapture(
+          state.currentCaptureId
         );
-
-
-        state.hasMorePhotos =
-          Boolean(
-            data.has_more_photos
-          );
-
-
-        renderPhotos();
 
       } catch (error) {
 
@@ -2305,809 +2759,131 @@
           error.message
         );
 
-      } finally {
-
-        button.disabled = false;
-
-        button.textContent =
-          "Carregar mais fotos";
-
       }
 
     }
+  );
 
 
-    /*
-     * ==========================================================
-     * MAPA
-     * ==========================================================
-     */
+  /*
+   * ==========================================================
+   * CONTROLES DE FOTO
+   * ==========================================================
+   */
 
+  document.getElementById(
+    "previousPhoto"
+  ).addEventListener(
+    "click",
+    () => {
 
-    function updateFollowInterface() {
+      const index =
+        selectedPhotoIndex();
 
-      const followButton =
-        document.getElementById(
-          "followButton"
-        );
-
-
-      const stopButton =
-        document.getElementById(
-          "stopFollowButton"
-        );
-
-
-      const status =
-        document.getElementById(
-          "followStatus"
-        );
-
-
-      followButton.disabled =
-        state.following;
-
-
-      stopButton.disabled =
-        !state.following;
-
-
-      if (state.following) {
-
-        status.textContent =
-          "Seguindo última posição";
-
-
-        status.classList.add(
-          "active"
-        );
-
-      } else {
-
-        status.textContent =
-          "Mapa livre";
-
-
-        status.classList.remove(
-          "active"
-        );
-
-      }
-
-    }
-
-
-    function centerOnLastLocation(
-      animate = true
-    ) {
-
-      if (!state.locations.length) {
-
-        showToast(
-          "Esta captura ainda não possui localização."
-        );
-
-        return;
-
-      }
-
-
-      const last =
-        state.locations[
-          state.locations.length - 1
-        ];
-
-
-      const point = [
-        Number(last.latitude),
-        Number(last.longitude)
-      ];
-
-
-      map.setView(
-        point,
-        Math.max(
-          map.getZoom(),
-          16
-        ),
-        {
-          animate
-        }
-      );
-
-    }
-
-
-    function renderMap() {
-
-      mapLayers.forEach(
-        layer =>
-          map.removeLayer(layer)
-      );
-
-
-      mapLayers = [];
-
-
-      if (!state.locations.length) {
-
-        return;
-
-      }
-
-
-      const points =
-        state.locations.map(
-          location => [
-            Number(location.latitude),
-            Number(location.longitude)
-          ]
-        );
-
-
-      /*
-       * Trajetória.
-       */
-
-      if (points.length > 1) {
-
-        const line =
-          L.polyline(
-            points,
-            {
-              color:"#2563eb",
-              weight:4
-            }
-          ).addTo(map);
-
-
-        mapLayers.push(line);
-
-      }
-
-
-      /*
-       * Pontos individuais.
-       */
-
-      state.locations.forEach(
-        (location, index) => {
-
-          const marker =
-            L.circleMarker(
-              [
-                Number(location.latitude),
-                Number(location.longitude)
-              ],
-              {
-                radius:4,
-                color:"#2563eb"
-              }
-            )
-              .bindPopup(
-                `Posição ${index + 1}<br>${formatDate(location.created_at)}`
-              )
-              .addTo(map);
-
-
-          mapLayers.push(marker);
-
-        }
-      );
-
-
-      /*
-       * Última posição.
-       */
-
-      const current =
-        L.marker(
-          points[
-            points.length - 1
-          ]
-        )
-          .bindPopup(
-            "Última posição"
-          )
-          .addTo(map);
-
-
-      mapLayers.push(current);
-
-
-      /*
-       * SEGUIR:
-       * atualiza automaticamente o centro
-       * quando chegam novas posições.
-       */
-
-      if (state.following) {
-
-        centerOnLastLocation(
-          false
-        );
-
-        return;
-
-      }
-
-
-      /*
-       * MAPA LIVRE:
-       *
-       * Só fazemos o enquadramento automático
-       * na primeira renderização daquela captura.
-       *
-       * Assim, quando o usuário apertar
-       * "Parar de seguir", o mapa NÃO fica
-       * pulando sozinho a cada atualização.
-       */
 
       if (
-        state.mapInitializedForCapture !==
-        state.currentCaptureId
+        index > 0
       ) {
 
-        if (points.length === 1) {
-
-          map.setView(
-            points[0],
-            16
-          );
-
-        } else {
-
-          map.fitBounds(
-            points,
-            {
-              padding:[28,28],
-              maxZoom:16
-            }
-          );
-
-        }
+        state.currentPhotoId =
+          state.photos[
+            index - 1
+          ].id;
 
 
-        state.mapInitializedForCapture =
-          state.currentCaptureId;
+        renderPhotos();
 
       }
 
     }
+  );
 
 
-    /*
-     * ==========================================================
-     * EVENTOS DO MAPA
-     * ==========================================================
-     */
+  document.getElementById(
+    "nextPhoto"
+  ).addEventListener(
+    "click",
+    async () => {
+
+      const index =
+        selectedPhotoIndex();
 
 
-    document.getElementById(
-      "followButton"
-    ).addEventListener(
-      "click",
-      () => {
-
-        state.following = true;
-
-        updateFollowInterface();
-
-        centerOnLastLocation();
-
-        showToast(
-          "Seguindo a última posição."
-        );
-
-      }
-    );
-
-
-    document.getElementById(
-      "stopFollowButton"
-    ).addEventListener(
-      "click",
-      () => {
-
-        state.following = false;
-
-        updateFollowInterface();
-
-        showToast(
-          "Acompanhamento do mapa parado."
-        );
-
-      }
-    );
-
-
-    document.getElementById(
-      "centerMapButton"
-    ).addEventListener(
-      "click",
-      () => {
-
-        centerOnLastLocation();
-
-      }
-    );
-
-
-    /*
-     * ==========================================================
-     * SELEÇÃO DE CAPTURA
-     * ==========================================================
-     */
-
-
-    captureSelect.addEventListener(
-      "change",
-      async () => {
-
-        state.currentCaptureId =
-          captureSelect.value ||
-          null;
-
-
-        /*
-         * Se o usuário escolheu manualmente
-         * a captura, consideramos que ele já
-         * viu essa notificação.
-         */
-
-        if (state.currentCaptureId) {
-
-          removeNotification(
-            state.currentCaptureId
-          );
-
-        }
-
-
-        state.photos = [];
+      if (
+        index <
+        state.photos.length - 1
+      ) {
 
         state.currentPhotoId =
-          null;
+          state.photos[
+            index + 1
+          ].id;
 
 
-        try {
+        renderPhotos();
 
-          await loadCapture(
-            state.currentCaptureId
-          );
-
-        } catch (error) {
-
-          showToast(
-            error.message
-          );
-
-        }
+        return;
 
       }
-    );
 
 
-    document.getElementById(
-      "previousPhoto"
-    ).addEventListener(
-      "click",
-      () => {
+      if (
+        state.hasMorePhotos
+      ) {
 
-        const index =
-          selectedPhotoIndex();
+        await loadMorePhotos();
 
 
-        if (index > 0) {
-
-          state.currentPhotoId =
-            state.photos[
-              index - 1
-            ].id;
-
-
-          renderPhotos();
-
-        }
-
-      }
-    );
-
-
-    document.getElementById(
-      "nextPhoto"
-    ).addEventListener(
-      "click",
-      async () => {
-
-        const index =
+        const updatedIndex =
           selectedPhotoIndex();
 
 
         if (
-          index <
+          updatedIndex <
           state.photos.length - 1
         ) {
 
           state.currentPhotoId =
             state.photos[
-              index + 1
+              updatedIndex + 1
             ].id;
 
 
           renderPhotos();
 
-          return;
-
-        }
-
-
-        if (state.hasMorePhotos) {
-
-          await loadMorePhotos();
-
-
-          const updatedIndex =
-            selectedPhotoIndex();
-
-
-          if (
-            updatedIndex <
-            state.photos.length - 1
-          ) {
-
-            state.currentPhotoId =
-              state.photos[
-                updatedIndex + 1
-              ].id;
-
-
-            renderPhotos();
-
-          }
-
         }
 
       }
-    );
 
+    }
+  );
 
-    document.getElementById(
-      "loadMorePhotos"
-    ).addEventListener(
-      "click",
-      loadMorePhotos
-    );
 
+  document.getElementById(
+    "loadMorePhotos"
+  ).addEventListener(
+    "click",
+    loadMorePhotos
+  );
 
-    /*
-     * ==========================================================
-     * RENOMEAR
-     * ==========================================================
-     */
 
+  /*
+   * ==========================================================
+   * ATUALIZAÇÃO MANUAL
+   * ==========================================================
+   */
 
-    document.getElementById(
-      "renameButton"
-    ).addEventListener(
-      "click",
-      async () => {
+  document.getElementById(
+    "refreshButton"
+  ).addEventListener(
+    "click",
+    async () => {
 
-        if (!state.capture) return;
-
-
-        const name =
-          window.prompt(
-            "Novo nome da captura (deixe vazio para remover):",
-            state.capture.display_name || ""
-          );
-
-
-        if (name === null) return;
-
-
-        try {
-
-          const data =
-            await fetchJson(
-              `/api/captures/${encodeURIComponent(state.currentCaptureId)}`,
-              {
-                method:"PATCH",
-                headers:{
-                  "Content-Type":
-                    "application/json"
-                },
-                body:JSON.stringify({
-                  display_name:name
-                })
-              }
-            );
-
-
-          state.capture.display_name =
-            data.capture.display_name;
-
-
-          await loadCaptures();
-
-
-          renderDashboard();
-
-
-          showToast(
-            "Captura renomeada."
-          );
-
-        } catch (error) {
-
-          showToast(
-            error.message
-          );
-
-        }
-
-      }
-    );
-
-
-    /*
-     * ==========================================================
-     * APAGAR CAPTURA
-     * ==========================================================
-     */
-
-
-    document.getElementById(
-      "deleteButton"
-    ).addEventListener(
-      "click",
-      async () => {
-
-        if (
-          !state.capture ||
-          !window.confirm(
-            "Apagar esta captura, suas fotos e posições? Esta ação não pode ser desfeita."
-          )
-        ) {
-
-          return;
-
-        }
-
-
-        try {
-
-          await fetchJson(
-            `/api/captures/${encodeURIComponent(state.currentCaptureId)}`,
-            {
-              method:"DELETE"
-            }
-          );
-
-
-          removeNotification(
-            state.currentCaptureId
-          );
-
-
-          state.currentCaptureId =
-            null;
-
-
-          clearDashboard();
-
-
-          await loadCaptures();
-
-
-          await loadCapture(
-            state.currentCaptureId
-          );
-
-
-          showToast(
-            "Captura apagada."
-          );
-
-        } catch (error) {
-
-          showToast(
-            error.message
-          );
-
-        }
-
-      }
-    );
-
-
-    /*
-     * ==========================================================
-     * ALERTAS DO NAVEGADOR
-     * ==========================================================
-     */
-
-
-    document.getElementById(
-      "browserNotifications"
-    ).addEventListener(
-      "click",
-      async () => {
-
-        if (
-          !("Notification" in window)
-        ) {
-
-          showToast(
-            "Este navegador não oferece alertas do sistema."
-          );
-
-          return;
-
-        }
-
-
-        try {
-
-          const result =
-            await Notification.requestPermission();
-
-
-          showToast(
-            result === "granted"
-              ? "Alertas do navegador ativados."
-              : "Alertas do navegador não foram autorizados."
-          );
-
-        } catch (error) {
-
-          showToast(
-            "Não foi possível ativar os alertas."
-          );
-
-        }
-
-      }
-    );
-
-
-    /*
-     * ==========================================================
-     * BOTÃO DE NOTIFICAÇÕES
-     * ==========================================================
-     */
-
-
-    notificationButton.addEventListener(
-      "click",
-      event => {
-
-        event.stopPropagation();
-
-
-        const willOpen =
-          !notificationMenu.classList.contains(
-            "open"
-          );
-
-
-        notificationMenu.classList.toggle(
-          "open",
-          willOpen
+      const button =
+        document.getElementById(
+          "refreshButton"
         );
 
-
-        notificationButton.setAttribute(
-          "aria-expanded",
-          String(willOpen)
-        );
-
-      }
-    );
-
-
-    notificationMenu.addEventListener(
-      "click",
-      event => {
-        event.stopPropagation();
-      }
-    );
-
-
-    document.addEventListener(
-      "click",
-      () => {
-
-        notificationMenu.classList.remove(
-          "open"
-        );
-
-
-        notificationButton.setAttribute(
-          "aria-expanded",
-          "false"
-        );
-
-      }
-    );
-
-
-    document.getElementById(
-      "clearNotifications"
-    ).addEventListener(
-      "click",
-      () => {
-
-        clearNotifications();
-
-        notificationMenu.classList.remove(
-          "open"
-        );
-
-
-        notificationButton.setAttribute(
-          "aria-expanded",
-          "false"
-        );
-
-      }
-    );
-
-
-    /*
-     * ==========================================================
-     * ATUALIZAÇÃO MANUAL
-     * ==========================================================
-     */
-
-
-    document.getElementById(
-      "refreshButton"
-    ).addEventListener(
-      "click",
-      async () => {
-
-        const button =
-          document.getElementById(
-            "refreshButton"
-          );
-
-
-        button.disabled = true;
-
-        button.textContent =
-          "⟳ Atualizando…";
-
-
-        try {
-
-          await refreshDashboard();
-
-          showToast(
-            "Painel atualizado."
-          );
-
-        } finally {
-
-          button.disabled = false;
-
-          button.textContent =
-            "🔄 Atualizar";
-
-        }
-
-      }
-    );
-
-
-    /*
-     * ==========================================================
-     * REFRESH AUTOMÁTICO
-     * ==========================================================
-     */
-
-
-    async function refreshDashboard() {
 
       if (
         state.refreshInProgress
@@ -3118,197 +2894,144 @@
       }
 
 
-      state.refreshInProgress =
+      button.disabled =
         true;
+
+      button.textContent =
+        "Atualizando…";
 
 
       try {
 
-        /*
-         * Primeiro verifica se chegaram
-         * novas capturas.
-         */
+        await refreshDashboard();
 
-        await loadCaptures({
-          notify:true
-        });
-
-
-        /*
-         * Depois atualiza a captura que
-         * já está aberta.
-         */
-
-        if (
-          state.currentCaptureId
-        ) {
-
-          await loadCapture(
-            state.currentCaptureId,
-            {
-              preserveGallery:true
-            }
-          );
-
-        }
-
-      } catch (error) {
-
-        console.error(
-          "Erro na atualização:",
-          error
+        showToast(
+          "Painel atualizado."
         );
 
       } finally {
 
-        state.refreshInProgress =
+        button.disabled =
           false;
+
+        button.textContent =
+          "↻ Atualizar";
 
       }
 
     }
+  );
 
 
-    /*
-     * ==========================================================
-     * ADMINISTRAÇÃO
-     * ==========================================================
-     */
+  /*
+   * ==========================================================
+   * RENOMEAR
+   * ==========================================================
+   */
+
+  document.getElementById(
+    "renameButton"
+  ).addEventListener(
+    "click",
+    async () => {
+
+      if (
+        !state.capture
+      ) {
+
+        return;
+
+      }
 
 
-    {% if current_user.is_admin %}
+      const name =
+        window.prompt(
+          "Novo nome da captura (deixe vazio para remover):",
+          state.capture.display_name || ""
+        );
 
 
-    async function loadUsers() {
+      if (
+        name === null
+      ) {
+
+        return;
+
+      }
+
 
       try {
 
         const data =
           await fetchJson(
-            "/api/users"
-          );
+            `/api/captures/${encodeURIComponent(state.currentCaptureId)}`,
+            {
+              method:"PATCH",
 
+              headers:{
+                "Content-Type":
+                  "application/json"
+              },
 
-        const rows =
-          document.getElementById(
-            "userRows"
-          );
-
-
-        rows.replaceChildren();
-
-
-        if (!data.users.length) {
-
-          rows.innerHTML =
-            '<tr><td colspan="5">Nenhum usuário adicional.</td></tr>';
-
-        } else {
-
-          data.users.forEach(
-            user => {
-
-              const row =
-                document.createElement(
-                  "tr"
-                );
-
-
-              [
-                user.username,
-                user.page_key,
-                user.active
-                  ? "Ativo"
-                  : "Inativo",
-                formatDate(
-                  user.created_at
-                )
-              ].forEach(
-                value => {
-
-                  const cell =
-                    document.createElement(
-                      "td"
-                    );
-
-
-                  cell.textContent =
-                    value;
-
-
-                  row.append(cell);
-
-                }
-              );
-
-
-              const action =
-                document.createElement(
-                  "td"
-                );
-
-
-              const remove =
-                document.createElement(
-                  "button"
-                );
-
-
-              remove.type =
-                "button";
-
-
-              remove.className =
-                "danger";
-
-
-              remove.textContent =
-                "Apagar";
-
-
-              remove.addEventListener(
-                "click",
-                () =>
-                  deleteUser(user)
-              );
-
-
-              action.append(
-                remove
-              );
-
-
-              row.append(
-                action
-              );
-
-
-              rows.append(
-                row
-              );
+              body:
+                JSON.stringify({
+                  display_name:name
+                })
 
             }
           );
 
-        }
+
+        state.capture.display_name =
+          data.capture.display_name;
+
+
+        await loadCaptures();
+
+
+        renderDashboard();
+
+
+        showToast(
+          "Captura renomeada."
+        );
 
       } catch (error) {
 
-        document.getElementById(
-          "userRows"
-        ).innerHTML =
-          '<tr><td colspan="5">Não foi possível carregar usuários.</td></tr>';
+        showToast(
+          error.message
+        );
 
       }
 
     }
+  );
 
 
-    async function deleteUser(user) {
+  /*
+   * ==========================================================
+   * APAGAR CAPTURA
+   * ==========================================================
+   */
+
+  document.getElementById(
+    "deleteButton"
+  ).addEventListener(
+    "click",
+    async () => {
+
+      if (
+        !state.capture
+      ) {
+
+        return;
+
+      }
+
 
       if (
         !window.confirm(
-          `Apagar o usuário ${user.username}? Ele perderá acesso imediatamente, mas as capturas serão preservadas.`
+          "Apagar esta captura, suas fotos e posições? Esta ação não pode ser desfeita."
         )
       ) {
 
@@ -3317,91 +3040,498 @@
       }
 
 
-      const message =
-        document.getElementById(
-          "userFormMessage"
-        );
-
-
       try {
 
         await fetchJson(
-          `/api/users/${encodeURIComponent(user.id)}`,
+          `/api/captures/${encodeURIComponent(state.currentCaptureId)}`,
           {
             method:"DELETE"
           }
         );
 
 
-        message.textContent =
-          `Usuário ${user.username} apagado.`;
+        state.currentCaptureId =
+          null;
 
 
-        await loadUsers();
+        state.capture =
+          null;
+
+
+        state.photos =
+          [];
+
+        state.locations =
+          [];
+
+
+        state.currentPhotoId =
+          null;
+
+
+        state.mapInitializedForCapture =
+          null;
+
+
+        await loadCaptures();
+
+
+        await loadCapture(
+          state.currentCaptureId
+        );
+
+
+        showToast(
+          "Captura apagada."
+        );
 
       } catch (error) {
 
-        message.textContent =
-          error.message;
+        showToast(
+          error.message
+        );
 
       }
 
     }
+  );
 
 
-    /*
-     * CORREÇÃO DO ERRO:
-     *
-     * Antes:
-     *
-     * event.currentTarget.reset()
-     *
-     * depois de um await.
-     *
-     * O currentTarget pode ser null.
-     *
-     * Agora guardamos o formulário
-     * antes do await.
-     */
+  /*
+   * ==========================================================
+   * ALERTAS DO NAVEGADOR
+   * ==========================================================
+   */
+
+  document.getElementById(
+    "browserNotifications"
+  ).addEventListener(
+    "click",
+    async () => {
+
+      if (
+        !("Notification" in window)
+      ) {
+
+        showToast(
+          "Este navegador não oferece alertas do sistema."
+        );
+
+        return;
+
+      }
 
 
-    document.getElementById(
-      "createUserForm"
-    ).addEventListener(
-      "submit",
-      async event => {
-
-        event.preventDefault();
+      const result =
+        await Notification.requestPermission();
 
 
-        const form =
-          event.currentTarget;
+      showToast(
+        result === "granted"
+          ? "Alertas do navegador ativados."
+          : "Alertas do navegador não foram autorizados."
+      );
+
+    }
+  );
 
 
-        const message =
-          document.getElementById(
-            "userFormMessage"
+  /*
+   * ==========================================================
+   * PAINEL DE NOTIFICAÇÕES
+   * ==========================================================
+   */
+
+  notificationBadge.addEventListener(
+    "click",
+    event => {
+
+      event.stopPropagation();
+
+      notificationPanel.classList.toggle(
+        "open"
+      );
+
+    }
+  );
+
+
+  document.getElementById(
+    "clearNotifications"
+  ).addEventListener(
+    "click",
+    () => {
+
+      state.pendingNotifications =
+        [];
+
+      updateNotificationBadge();
+
+    }
+  );
+
+
+  document.addEventListener(
+    "click",
+    event => {
+
+      const wrapper =
+        document.querySelector(
+          ".notification-wrapper"
+        );
+
+
+      if (
+        wrapper &&
+        !wrapper.contains(
+          event.target
+        )
+      ) {
+
+        notificationPanel.classList.remove(
+          "open"
+        );
+
+      }
+
+    }
+  );
+
+
+  /*
+   * ==========================================================
+   * MAPA
+   * ==========================================================
+   */
+
+  document.getElementById(
+    "followButton"
+  ).addEventListener(
+    "click",
+    followLastPosition
+  );
+
+
+  document.getElementById(
+    "stopFollowButton"
+  ).addEventListener(
+    "click",
+    stopFollowing
+  );
+
+
+  document.getElementById(
+    "lastPositionButton"
+  ).addEventListener(
+    "click",
+    goToLastPosition
+  );
+
+
+  updateFollowStatus();
+
+
+  /*
+   * ==========================================================
+   * ATUALIZAÇÃO AUTOMÁTICA
+   *
+   * A cada 8 segundos:
+   *
+   * 1. verifica novas capturas;
+   * 2. verifica novas fotos em todas as capturas;
+   * 3. atualiza a captura aberta;
+   * 4. atualiza posições;
+   * 5. preserva a galeria.
+   * ==========================================================
+   */
+
+  async function refreshDashboard() {
+
+    if (
+      state.refreshInProgress
+    ) {
+
+      return;
+
+    }
+
+
+    state.refreshInProgress =
+      true;
+
+
+    try {
+
+      await loadCaptures({
+        notify:true
+      });
+
+
+      if (
+        state.currentCaptureId
+      ) {
+
+        await loadCapture(
+          state.currentCaptureId,
+          {
+            preserveGallery:true
+          }
+        );
+
+      }
+
+    } catch (error) {
+
+      console.error(
+        error
+      );
+
+    } finally {
+
+      state.refreshInProgress =
+        false;
+
+    }
+
+  }
+
+
+  /*
+   * ==========================================================
+   * ADMINISTRAÇÃO DE USUÁRIOS
+   * ==========================================================
+   */
+
+  {% if current_user.is_admin %}
+
+  async function loadUsers() {
+
+    try {
+
+      const data =
+        await fetchJson(
+          "/api/users"
+        );
+
+
+      const rows =
+        document.getElementById(
+          "userRows"
+        );
+
+
+      rows.replaceChildren();
+
+
+      if (
+        !data.users.length
+      ) {
+
+        rows.innerHTML =
+          '<tr><td colspan="5">Nenhum usuário adicional.</td></tr>';
+
+        return;
+
+      }
+
+
+      data.users.forEach(
+        user => {
+
+          const row =
+            document.createElement(
+              "tr"
+            );
+
+
+          [
+            user.username,
+            user.page_key,
+            user.active
+              ? "Ativo"
+              : "Inativo",
+            formatDate(
+              user.created_at
+            )
+          ].forEach(
+            value => {
+
+              const cell =
+                document.createElement(
+                  "td"
+                );
+
+              cell.textContent =
+                value;
+
+              row.append(
+                cell
+              );
+
+            }
           );
 
 
-        message.textContent =
-          "Criando…";
+          const action =
+            document.createElement(
+              "td"
+            );
 
 
-        try {
+          const remove =
+            document.createElement(
+              "button"
+            );
 
-          const user =
-            await fetchJson(
-              "/api/users",
-              {
-                method:"POST",
 
-                headers:{
-                  "Content-Type":
-                    "application/json"
-                },
+          remove.type =
+            "button";
 
-                body:JSON.stringify({
+
+          remove.className =
+            "danger";
+
+
+          remove.textContent =
+            "Apagar";
+
+
+          remove.addEventListener(
+            "click",
+            () =>
+              deleteUser(
+                user
+              )
+          );
+
+
+          action.append(
+            remove
+          );
+
+
+          row.append(
+            action
+          );
+
+
+          rows.append(
+            row
+          );
+
+        }
+      );
+
+    } catch (error) {
+
+      document.getElementById(
+        "userRows"
+      ).innerHTML =
+        '<tr><td colspan="5">Não foi possível carregar usuários.</td></tr>';
+
+    }
+
+  }
+
+
+  async function deleteUser(
+    user
+  ) {
+
+    if (
+      !window.confirm(
+        `Apagar o usuário ${user.username}? Ele perderá acesso imediatamente, mas as capturas serão preservadas.`
+      )
+    ) {
+
+      return;
+
+    }
+
+
+    const message =
+      document.getElementById(
+        "userFormMessage"
+      );
+
+
+    try {
+
+      await fetchJson(
+        `/api/users/${encodeURIComponent(user.id)}`,
+        {
+          method:"DELETE"
+        }
+      );
+
+
+      message.textContent =
+        `Usuário ${user.username} apagado.`;
+
+
+      await loadUsers();
+
+    } catch (error) {
+
+      message.textContent =
+        error.message;
+
+    }
+
+  }
+
+
+  /*
+   * ==========================================================
+   * CRIAR USUÁRIO
+   *
+   * Correção importante:
+   *
+   * Guardamos o formulário ANTES do await.
+   *
+   * Isso evita:
+   * Cannot read properties of null (reading 'reset')
+   * ==========================================================
+   */
+
+  document.getElementById(
+    "createUserForm"
+  ).addEventListener(
+    "submit",
+    async event => {
+
+      event.preventDefault();
+
+
+      const form =
+        event.currentTarget;
+
+
+      const message =
+        document.getElementById(
+          "userFormMessage"
+        );
+
+
+      message.textContent =
+        "Criando…";
+
+
+      try {
+
+        const user =
+          await fetchJson(
+            "/api/users",
+            {
+              method:"POST",
+
+              headers:{
+                "Content-Type":
+                  "application/json"
+              },
+
+              body:
+                JSON.stringify({
 
                   username:
                     document.getElementById(
@@ -3420,141 +3550,132 @@
 
                 })
 
-              }
-            );
-
-
-          /*
-           * Agora usamos a referência
-           * guardada antes do await.
-           */
-
-          form.reset();
-
-
-          message.textContent =
-            `Usuário ${user.user.username} criado para /${user.user.page_key}.html.`;
-
-
-          await loadUsers();
-
-        } catch (error) {
-
-          message.textContent =
-            error.message;
-
-        }
-
-      }
-    );
-
-
-    document.getElementById(
-      "toggleAdminPanel"
-    ).addEventListener(
-      "click",
-      async event => {
-
-        const panel =
-          document.getElementById(
-            "adminPanel"
+            }
           );
 
 
-        const willOpen =
-          panel.hidden;
-
-
-        panel.hidden =
-          !willOpen;
-
-
-        event.currentTarget.setAttribute(
-          "aria-expanded",
-          String(willOpen)
-        );
-
-
-        event.currentTarget.textContent =
-          willOpen
-            ? "Ocultar usuários"
-            : "Gerenciar usuários";
-
-
-        if (willOpen) {
-
-          await loadUsers();
-
-        }
-
-      }
-    );
-
-
-    {% endif %}
-
-
-    /*
-     * ==========================================================
-     * INICIALIZAÇÃO
-     * ==========================================================
-     */
-
-
-    async function initialize() {
-
-      try {
-
         /*
-         * Primeira consulta não gera
-         * notificações.
-         *
-         * Isso é importante para não aparecer
-         * "50 novas capturas" assim que o painel
-         * é aberto.
+         * Usa a referência salva antes do await.
          */
 
-        await loadCaptures();
+        form.reset();
 
 
-        await loadCapture(
-          state.currentCaptureId
-        );
+        message.textContent =
+          `Usuário ${user.user.username} criado para /${user.user.page_key}.html.`;
 
 
-        updateFollowInterface();
-
+        await loadUsers();
 
       } catch (error) {
 
-        showToast(
-          error.message
-        );
+        message.textContent =
+          error.message;
 
       }
 
+    }
+  );
+
+
+  document.getElementById(
+    "toggleAdminPanel"
+  ).addEventListener(
+    "click",
+    async event => {
+
+      const panel =
+        document.getElementById(
+          "adminPanel"
+        );
+
+
+      const willOpen =
+        panel.hidden;
+
+
+      panel.hidden =
+        !willOpen;
+
+
+      event.currentTarget.setAttribute(
+        "aria-expanded",
+        String(willOpen)
+      );
+
+
+      event.currentTarget.textContent =
+        willOpen
+          ? "Ocultar usuários"
+          : "Gerenciar usuários";
+
+
+      if (
+        willOpen
+      ) {
+
+        await loadUsers();
+
+      }
+
+    }
+  );
+
+  {% endif %}
+
+
+  /*
+   * ==========================================================
+   * INICIALIZAÇÃO
+   * ==========================================================
+   */
+
+  async function initialize() {
+
+    try {
 
       /*
-       * A cada 8 segundos:
+       * Primeira carga:
        *
-       * 1. verifica novas capturas;
-       * 2. atualiza a captura atual;
-       * 3. atualiza trajetória;
-       * 4. se "Seguir" estiver ativo,
-       *    acompanha a última posição.
+       * loadCaptures() cria a linha de base
+       * de photo_total sem notificar.
        */
 
-      setInterval(
-        refreshDashboard,
-        8000
+      await loadCaptures();
+
+
+      await loadCapture(
+        state.currentCaptureId
+      );
+
+
+      updateFollowStatus();
+
+
+    } catch (error) {
+
+      showToast(
+        error.message
       );
 
     }
 
 
-    initialize();
+    /*
+     * Atualização automática a cada 8 segundos.
+     */
 
-  </script>
+    setInterval(
+      refreshDashboard,
+      8000
+    );
+
+  }
+
+
+  initialize();
+
+</script>
 
 </body>
 </html>
