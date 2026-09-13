@@ -6,24 +6,25 @@
   <title>Painel de capturas</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <style>
-    :root { --bg:#f4f7fb; --panel:#fff; --ink:#172033; --muted:#657188; --border:#dde4ef; --primary:#2563eb; --danger:#dc2626; --success:#16a34a; }
-    * { box-sizing:border-box; } body { margin:0; background:var(--bg); color:var(--ink); font-family:Arial,Helvetica,sans-serif; }
-    header { min-height:64px; padding:12px max(20px,calc((100vw - 1500px)/2)); background:#111827; color:white; display:flex; align-items:center; justify-content:space-between; gap:14px; }
-    .brand { font-size:19px; font-weight:800; } .account { color:#d6deeb; font-size:13px; display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
-    .logout { background:#dc2626; color:#fff; text-decoration:none; border-radius:8px; padding:8px 12px; font-weight:700; }
-    .shell { max-width:1500px; margin:auto; padding:22px; } .card { background:var(--panel); border:1px solid var(--border); border-radius:13px; box-shadow:0 2px 10px rgba(15,23,42,.05); }
+    :root { --bg:#070b12; --bg2:#0a0f18; --panel:#0d131d; --panel2:#111925; --ink:#e6edf7; --muted:#7f8da3; --border:#1d2a3a; --primary:#58a6ff; --primary2:#2f81f7; --danger:#ff6b7a; --success:#3fb950; --cyan:#39d0d8; --shadow:rgba(0,0,0,.38); }
+    * { box-sizing:border-box; } html { background:var(--bg); } body { margin:0; background:radial-gradient(circle at 15% -10%,rgba(47,129,247,.13),transparent 34%),radial-gradient(circle at 90% 0%,rgba(57,208,216,.07),transparent 28%),var(--bg); color:var(--ink); font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+    header { min-height:68px; padding:12px max(20px,calc((100vw - 1500px)/2)); background:rgba(7,11,18,.88); border-bottom:1px solid var(--border); color:white; display:flex; align-items:center; justify-content:space-between; gap:14px; position:sticky; top:0; z-index:20; backdrop-filter:blur(16px); }
+    .brand { font-size:19px; font-weight:800; letter-spacing:.2px; } .brand::before { content:"⌘"; color:var(--cyan); margin-right:8px; font-family:monospace; } .account { color:#aab7c8; font-size:13px; display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+    .logout { background:rgba(255,107,122,.1); border:1px solid rgba(255,107,122,.28); color:#ff9aa6; text-decoration:none; border-radius:8px; padding:8px 12px; font-weight:700; }
+    .shell { max-width:1500px; margin:auto; padding:24px; } .card { background:linear-gradient(180deg,rgba(17,25,37,.96),rgba(13,19,29,.96)); border:1px solid var(--border); border-radius:14px; box-shadow:0 12px 35px var(--shadow); overflow:hidden; }
     .topbar { display:flex; align-items:end; gap:12px; justify-content:space-between; margin-bottom:18px; flex-wrap:wrap; }
-    .selector { display:flex; gap:9px; align-items:center; flex-wrap:wrap; } label { font-weight:700; font-size:13px; }
-    select, input { border:1px solid #cbd5e1; border-radius:8px; min-height:38px; padding:8px 10px; background:white; font:inherit; color:var(--ink); }
-    select { min-width:290px; } button { border:0; border-radius:8px; min-height:38px; padding:8px 12px; font:inherit; font-weight:700; cursor:pointer; background:#e7edf7; color:#18243a; }
-    button:hover { filter:brightness(.97); } button.primary { background:var(--primary); color:white; } button.danger { background:#fee2e2; color:#991b1b; } button:disabled { opacity:.55; cursor:not-allowed; }
-    .notification { display:flex; align-items:center; gap:9px; color:var(--muted); font-size:13px; } .badge { background:var(--danger); color:white; border-radius:99px; font-size:11px; min-width:18px; min-height:18px; padding:2px 5px; text-align:center; display:none; }
-    .grid { display:grid; grid-template-columns:400px minmax(0,1fr); gap:20px; } .side { display:flex; flex-direction:column; gap:20px; }
-    .card-title { padding:15px 17px; border-bottom:1px solid var(--border); font-weight:800; display:flex; justify-content:space-between; align-items:center; gap:9px; } .body { padding:17px; }
-    .photo-frame { height:clamp(320px,42vw,540px); background:#0f172a; display:grid; place-items:center; overflow:hidden; } .photo-frame img { width:100%; height:100%; object-fit:contain; object-position:center; display:none; } .empty { color:#94a3b8; font-size:14px; text-align:center; padding:20px; }
-    .photo-controls { display:flex; gap:8px; margin-top:12px; } .photo-controls button { flex:1; } .counter { text-align:center; color:var(--muted); font-size:12px; margin:9px 0 0; }
-    .facts { display:grid; grid-template-columns:1fr 1fr; gap:9px; } .fact { background:#f8fafc; border:1px solid #e8edf5; border-radius:8px; padding:10px; } .fact span { display:block; font-size:10px; color:var(--muted); text-transform:uppercase; font-weight:800; } .fact b { display:block; margin-top:5px; font-size:14px; word-break:break-word; }
-    .maps { display:block; margin-top:12px; padding:10px; text-align:center; background:var(--primary); color:white; border-radius:8px; text-decoration:none; font-weight:700; font-size:13px; }
+    .selector { display:flex; gap:9px; align-items:center; flex-wrap:wrap; } label { font-weight:700; font-size:12px; color:#aebbd0; text-transform:uppercase; letter-spacing:.08em; }
+    select, input { border:1px solid #26364a; border-radius:8px; min-height:38px; padding:8px 10px; background:#0a1019; font:inherit; color:var(--ink); outline:none; } select:focus,input:focus { border-color:var(--primary); box-shadow:0 0 0 3px rgba(88,166,255,.1); }
+    select { min-width:290px; } button { border:1px solid #26364a; border-radius:8px; min-height:38px; padding:8px 12px; font:inherit; font-weight:700; cursor:pointer; background:#121c2a; color:#cbd7e7; transition:.18s ease; } button:hover { border-color:#3a526d; transform:translateY(-1px); } button.primary { background:linear-gradient(135deg,#2f81f7,#1769d0); border-color:#3b8cff; color:white; } button.danger { background:rgba(255,107,122,.09); border-color:rgba(255,107,122,.25); color:#ff9aa6; } button:disabled { opacity:.45; cursor:not-allowed; transform:none; }
+    .notification { display:flex; align-items:center; gap:9px; color:var(--muted); font-size:13px; } .badge { background:var(--danger); color:white; border-radius:99px; font-size:11px; min-width:18px; min-height:18px; padding:2px 5px; text-align:center; display:none; box-shadow:0 0 14px rgba(255,107,122,.35); }
+    .grid { display:grid; grid-template-columns:420px minmax(0,1fr); gap:20px; } .side { display:flex; flex-direction:column; gap:20px; }
+    .card-title { padding:15px 17px; border-bottom:1px solid var(--border); font-weight:800; display:flex; justify-content:space-between; align-items:center; gap:9px; background:rgba(255,255,255,.012); } .body { padding:17px; }
+    .photo-frame { height:clamp(380px,48vw,650px); background:radial-gradient(circle at center,#121c2a 0,#080d15 72%); display:grid; place-items:center; overflow:hidden; position:relative; cursor:zoom-in; }
+    .photo-frame::after { content:"Clique para ampliar"; position:absolute; right:12px; bottom:12px; padding:6px 9px; border-radius:7px; background:rgba(4,8,14,.78); border:1px solid #26364a; color:#9fb0c5; font:11px/1 ui-monospace,SFMono-Regular,Menlo,monospace; opacity:.9; pointer-events:none; }
+    .photo-frame img { width:100%; height:100%; object-fit:contain; object-position:center; display:none; padding:10px; transition:transform .2s ease; } .photo-frame:hover img { transform:scale(1.015); } .empty { color:#718096; font-size:14px; text-align:center; padding:20px; }
+    .photo-controls { display:flex; gap:8px; margin-top:12px; } .photo-controls button { flex:1; } .counter { text-align:center; color:var(--muted); font-size:12px; margin:9px 0 0; font-family:ui-monospace,SFMono-Regular,Menlo,monospace; }
+    .facts { display:grid; grid-template-columns:1fr 1fr; gap:9px; } .fact { background:#0a111b; border:1px solid #1b2939; border-radius:9px; padding:10px; } .fact span { display:block; font-size:9px; color:#64748b; text-transform:uppercase; font-weight:800; letter-spacing:.08em; } .fact b { display:block; margin-top:5px; font-size:13px; word-break:break-word; color:#d7e1ef; }
+    .maps { display:block; margin-top:12px; padding:10px; text-align:center; background:linear-gradient(135deg,#2563eb,#1d4ed8); color:white; border:1px solid #367cff; border-radius:8px; text-decoration:none; font-weight:700; font-size:13px; }
     #map { height:590px; } .gallery { display:grid; grid-template-columns:repeat(auto-fill,minmax(105px,1fr)); gap:9px; } .thumb { padding:0; background:#0f172a; border:2px solid transparent; aspect-ratio:1; overflow:hidden; position:relative; } .thumb.selected { border-color:var(--primary); } .thumb img { display:block; width:100%; height:100%; object-fit:contain; object-position:center; } .thumb small { position:absolute; bottom:0; left:0; right:0; padding:4px; background:rgba(15,23,42,.75); color:white; font-size:9px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .load-more { width:100%; margin-top:12px; } .admin { margin-top:20px; } .admin-grid { display:grid; grid-template-columns:minmax(250px,390px) 1fr; gap:18px; } .form-grid { display:grid; gap:10px; } .form-message { min-height:19px; margin:8px 0 0; font-size:13px; color:var(--muted); } .user-list { overflow:auto; max-height:295px; } table { width:100%; border-collapse:collapse; font-size:13px; } th,td { padding:10px; border-bottom:1px solid var(--border); text-align:left; } th { color:var(--muted); font-size:11px; text-transform:uppercase; } .scope { color:var(--muted); font-size:12px; }
     .admin-toggle { margin-top:20px; } .toast { position:fixed; right:20px; bottom:20px; max-width:360px; background:#172033; color:white; padding:13px 15px; border-radius:9px; box-shadow:0 10px 28px rgba(0,0,0,.25); display:none; z-index:5; } .toast.show { display:block; }
@@ -103,6 +104,14 @@
     </section>
     {% endif %}
   </main>
+  <div id="photoModal" class="photo-modal" aria-hidden="true">
+    <div class="photo-modal-bar">
+      <div id="photoModalTitle" class="photo-modal-title">Visualização ampliada</div>
+      <button id="closePhotoModal" class="photo-modal-close" type="button" aria-label="Fechar">×</button>
+    </div>
+    <img id="photoModalImage" alt="Foto ampliada">
+    <div class="photo-modal-help">ESC fecha · clique na imagem para zoom</div>
+  </div>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -242,6 +251,27 @@
       [state.photos[index - 1], state.photos[index + 1]].filter(Boolean).forEach(photo => { const image = new Image(); image.src = photo.photo_url; });
     }
 
+    function openPhotoModal() {
+      const photo = state.photos.find(item => item.id === state.currentPhotoId);
+      if (!photo) return;
+      const modal = document.getElementById("photoModal");
+      const modalImage = document.getElementById("photoModalImage");
+      modalImage.src = photo.photo_url;
+      modalImage.alt = `Foto ampliada de ${formatDate(photo.created_at)}`;
+      document.getElementById("photoModalTitle").textContent = `Foto ${selectedPhotoIndex() + 1} · ${formatDate(photo.created_at)}`;
+      modal.classList.remove("zoomed");
+      modal.classList.add("open");
+      modal.setAttribute("aria-hidden", "false");
+      document.body.style.overflow = "hidden";
+    }
+
+    function closePhotoModal() {
+      const modal = document.getElementById("photoModal");
+      modal.classList.remove("open", "zoomed");
+      modal.setAttribute("aria-hidden", "true");
+      document.body.style.overflow = "";
+    }
+
     function renderPhotos() {
       const photo = state.photos.find(item => item.id === state.currentPhotoId);
       const currentIndex = selectedPhotoIndex();
@@ -298,6 +328,18 @@
     document.getElementById("previousPhoto").addEventListener("click", () => { const index = selectedPhotoIndex(); if (index > 0) { state.currentPhotoId = state.photos[index - 1].id; renderPhotos(); } });
     document.getElementById("nextPhoto").addEventListener("click", async () => { const index = selectedPhotoIndex(); if (index < state.photos.length - 1) { state.currentPhotoId = state.photos[index + 1].id; renderPhotos(); return; } if (state.hasMorePhotos) { await loadMorePhotos(); const updatedIndex = selectedPhotoIndex(); if (updatedIndex < state.photos.length - 1) { state.currentPhotoId = state.photos[updatedIndex + 1].id; renderPhotos(); } } });
     document.getElementById("loadMorePhotos").addEventListener("click", loadMorePhotos);
+
+    document.getElementById("currentPhoto").addEventListener("click", openPhotoModal);
+    document.getElementById("photoModalImage").addEventListener("click", () => {
+      document.getElementById("photoModal").classList.toggle("zoomed");
+    });
+    document.getElementById("closePhotoModal").addEventListener("click", closePhotoModal);
+    document.getElementById("photoModal").addEventListener("click", event => {
+      if (event.target.id === "photoModal") closePhotoModal();
+    });
+    document.addEventListener("keydown", event => {
+      if (event.key === "Escape") closePhotoModal();
+    });
 
     document.getElementById("renameButton").addEventListener("click", async () => {
       if (!state.capture) return;
