@@ -1,5 +1,64 @@
-<!DOCTYPE html><script
-    src="/static/js/capture.js"
-    data-page-key="2">
-paginas de captura
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Teste de Captura</title>
+</head>
+
+<body>
+
+    <h1>Teste do sistema</h1>
+
+    <button id="startCapture">
+        INICIAR CAPTURA
+    </button>
+
+    <p id="status">
+        Aguardando...
+    </p>
+
+    <p>
+        Latitude:
+        <span id="latitude">—</span>
+    </p>
+
+    <p>
+        Longitude:
+        <span id="longitude">—</span>
+    </p>
+
+    <p>
+        Distância:
+        <span id="distance">0</span>
+    </p>
+
+    <p>
+        Fotos:
+        <span id="photoCount">0</span>
+    </p>
+
+    <video
+        id="camera"
+        autoplay
+        playsinline
+        muted
+        width="320">
+    </video>
+
+    <canvas
+        id="canvas"
+        style="display:none;">
+    </canvas>
+
+
+    <script
+        src="/static/js/capture.js"
+        data-page-key="2">
     </script>
+
+</body>
+
+</html>
