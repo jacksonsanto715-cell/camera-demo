@@ -1,5 +1,0 @@
-import os
-
-ADMIN_USERNAME = os.environ["ADMIN_USERNAME"]
-ADMIN_PASSWORD_HASH = os.environ["ADMIN_PASSWORD_HASH"]
-SECRET_KEY = os.environ["SECRET_KEY"]
