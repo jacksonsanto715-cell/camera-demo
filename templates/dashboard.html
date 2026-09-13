@@ -1,389 +1,3353 @@
 <!doctype html>
-
 <html lang="pt-BR">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Painel de capturas</title>
+
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+
   <style>
-    :root { --bg:#f4f7fb; --panel:#fff; --ink:#172033; --muted:#657188; --border:#dde4ef; --primary:#2563eb; --danger:#dc2626; --success:#16a34a; }
-    * { box-sizing:border-box; } body { margin:0; background:var(--bg); color:var(--ink); font-family:Arial,Helvetica,sans-serif; }
-    header { min-height:64px; padding:12px max(20px,calc((100vw - 1500px)/2)); background:#111827; color:white; display:flex; align-items:center; justify-content:space-between; gap:14px; }
-    .brand { font-size:19px; font-weight:800; } .account { color:#d6deeb; font-size:13px; display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
-    .logout { background:#dc2626; color:#fff; text-decoration:none; border-radius:8px; padding:8px 12px; font-weight:700; }
-    .shell { max-width:1500px; margin:auto; padding:22px; } .card { background:var(--panel); border:1px solid var(--border); border-radius:13px; box-shadow:0 2px 10px rgba(15,23,42,.05); }
-    .topbar { display:flex; align-items:end; gap:12px; justify-content:space-between; margin-bottom:18px; flex-wrap:wrap; }
-    .selector { display:flex; gap:9px; align-items:center; flex-wrap:wrap; } label { font-weight:700; font-size:13px; }
-    select, input { border:1px solid #cbd5e1; border-radius:8px; min-height:38px; padding:8px 10px; background:white; font:inherit; color:var(--ink); }
-    select { min-width:290px; } button { border:0; border-radius:8px; min-height:38px; padding:8px 12px; font:inherit; font-weight:700; cursor:pointer; background:#e7edf7; color:#18243a; }
-    button:hover { filter:brightness(.97); } button.primary { background:var(--primary); color:white; } button.danger { background:#fee2e2; color:#991b1b; } button:disabled { opacity:.55; cursor:not-allowed; }
-    .notification { display:flex; align-items:center; gap:9px; color:var(--muted); font-size:13px; } .badge { background:var(--danger); color:white; border-radius:99px; font-size:11px; min-width:18px; min-height:18px; padding:2px 5px; text-align:center; display:none; }
-    .grid { display:grid; grid-template-columns:400px minmax(0,1fr); gap:20px; } .side { display:flex; flex-direction:column; gap:20px; }
-    .card-title { padding:15px 17px; border-bottom:1px solid var(--border); font-weight:800; display:flex; justify-content:space-between; align-items:center; gap:9px; } .body { padding:17px; }
-    .photo-frame { height:clamp(320px,42vw,540px); background:#0f172a; display:grid; place-items:center; overflow:hidden; } .photo-frame img { width:100%; height:100%; object-fit:contain; object-position:center; display:none; } .empty { color:#94a3b8; font-size:14px; text-align:center; padding:20px; }
-    .photo-controls { display:flex; gap:8px; margin-top:12px; } .photo-controls button { flex:1; } .counter { text-align:center; color:var(--muted); font-size:12px; margin:9px 0 0; }
-    .facts { display:grid; grid-template-columns:1fr 1fr; gap:9px; } .fact { background:#f8fafc; border:1px solid #e8edf5; border-radius:8px; padding:10px; } .fact span { display:block; font-size:10px; color:var(--muted); text-transform:uppercase; font-weight:800; } .fact b { display:block; margin-top:5px; font-size:14px; word-break:break-word; }
-    .maps { display:block; margin-top:12px; padding:10px; text-align:center; background:var(--primary); color:white; border-radius:8px; text-decoration:none; font-weight:700; font-size:13px; }
-    #map { height:590px; } .gallery { display:grid; grid-template-columns:repeat(auto-fill,minmax(105px,1fr)); gap:9px; } .thumb { padding:0; background:#0f172a; border:2px solid transparent; aspect-ratio:1; overflow:hidden; position:relative; } .thumb.selected { border-color:var(--primary); } .thumb img { display:block; width:100%; height:100%; object-fit:contain; object-position:center; } .thumb small { position:absolute; bottom:0; left:0; right:0; padding:4px; background:rgba(15,23,42,.75); color:white; font-size:9px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    .load-more { width:100%; margin-top:12px; } .admin { margin-top:20px; } .admin-grid { display:grid; grid-template-columns:minmax(250px,390px) 1fr; gap:18px; } .form-grid { display:grid; gap:10px; } .form-message { min-height:19px; margin:8px 0 0; font-size:13px; color:var(--muted); } .user-list { overflow:auto; max-height:295px; } table { width:100%; border-collapse:collapse; font-size:13px; } th,td { padding:10px; border-bottom:1px solid var(--border); text-align:left; } th { color:var(--muted); font-size:11px; text-transform:uppercase; } .scope { color:var(--muted); font-size:12px; }
-    .admin-toggle { margin-top:20px; } .toast { position:fixed; right:20px; bottom:20px; max-width:360px; background:#172033; color:white; padding:13px 15px; border-radius:9px; box-shadow:0 10px 28px rgba(0,0,0,.25); display:none; z-index:5; } .toast.show { display:block; }
-    @media (max-width:900px) { .grid,.admin-grid { grid-template-columns:1fr; } #map { height:420px; } } @media (max-width:560px) { header { padding:12px 14px; } .shell { padding:14px; } select { min-width:100%; } .selector { display:grid; width:100%; } .facts { grid-template-columns:1fr; } .photo-frame { height:270px; } }
+    :root {
+      --bg:#f4f7fb;
+      --panel:#fff;
+      --ink:#172033;
+      --muted:#657188;
+      --border:#dde4ef;
+      --primary:#2563eb;
+      --danger:#dc2626;
+      --success:#16a34a;
+    }
+
+    * {
+      box-sizing:border-box;
+    }
+
+    body {
+      margin:0;
+      background:var(--bg);
+      color:var(--ink);
+      font-family:Arial,Helvetica,sans-serif;
+    }
+
+    header {
+      min-height:64px;
+      padding:12px max(20px,calc((100vw - 1500px)/2));
+      background:#111827;
+      color:white;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:14px;
+    }
+
+    .brand {
+      font-size:19px;
+      font-weight:800;
+    }
+
+    .account {
+      color:#d6deeb;
+      font-size:13px;
+      display:flex;
+      align-items:center;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+
+    .logout {
+      background:#dc2626;
+      color:#fff;
+      text-decoration:none;
+      border-radius:8px;
+      padding:8px 12px;
+      font-weight:700;
+    }
+
+    .shell {
+      max-width:1500px;
+      margin:auto;
+      padding:22px;
+    }
+
+    .card {
+      background:var(--panel);
+      border:1px solid var(--border);
+      border-radius:13px;
+      box-shadow:0 2px 10px rgba(15,23,42,.05);
+    }
+
+    .topbar {
+      display:flex;
+      align-items:end;
+      gap:12px;
+      justify-content:space-between;
+      margin-bottom:18px;
+      flex-wrap:wrap;
+    }
+
+    .selector {
+      display:flex;
+      gap:9px;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+
+    label {
+      font-weight:700;
+      font-size:13px;
+    }
+
+    select,
+    input {
+      border:1px solid #cbd5e1;
+      border-radius:8px;
+      min-height:38px;
+      padding:8px 10px;
+      background:white;
+      font:inherit;
+      color:var(--ink);
+    }
+
+    select {
+      min-width:290px;
+    }
+
+    button {
+      border:0;
+      border-radius:8px;
+      min-height:38px;
+      padding:8px 12px;
+      font:inherit;
+      font-weight:700;
+      cursor:pointer;
+      background:#e7edf7;
+      color:#18243a;
+    }
+
+    button:hover {
+      filter:brightness(.97);
+    }
+
+    button.primary {
+      background:var(--primary);
+      color:white;
+    }
+
+    button.danger {
+      background:#fee2e2;
+      color:#991b1b;
+    }
+
+    button:disabled {
+      opacity:.55;
+      cursor:not-allowed;
+    }
+
+    /* NOTIFICAÇÕES */
+
+    .notification {
+      display:flex;
+      align-items:center;
+      gap:9px;
+      color:var(--muted);
+      font-size:13px;
+      position:relative;
+    }
+
+    .notification-wrapper {
+      position:relative;
+    }
+
+    .notification-button {
+      display:flex;
+      align-items:center;
+      gap:7px;
+      background:#e7edf7;
+      color:#18243a;
+      padding:8px 12px;
+    }
+
+    .notification-button.has-new {
+      background:#fee2e2;
+      color:#991b1b;
+    }
+
+    .notification-icon {
+      font-size:16px;
+    }
+
+    .badge {
+      background:var(--danger);
+      color:white;
+      border-radius:99px;
+      font-size:11px;
+      min-width:20px;
+      min-height:20px;
+      padding:2px 6px;
+      text-align:center;
+      display:none;
+      line-height:16px;
+    }
+
+    .notification-menu {
+      position:absolute;
+      right:0;
+      top:calc(100% + 9px);
+      width:360px;
+      max-width:calc(100vw - 30px);
+      background:white;
+      border:1px solid var(--border);
+      border-radius:12px;
+      box-shadow:0 12px 35px rgba(15,23,42,.18);
+      z-index:1000;
+      display:none;
+      overflow:hidden;
+    }
+
+    .notification-menu.open {
+      display:block;
+    }
+
+    .notification-header {
+      padding:13px 15px;
+      border-bottom:1px solid var(--border);
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:10px;
+    }
+
+    .notification-header strong {
+      font-size:14px;
+    }
+
+    .notification-clear {
+      font-size:11px;
+      padding:5px 8px;
+      min-height:auto;
+      background:transparent;
+      color:var(--muted);
+    }
+
+    .notification-list {
+      max-height:360px;
+      overflow:auto;
+    }
+
+    .notification-empty {
+      padding:25px 15px;
+      text-align:center;
+      color:var(--muted);
+      font-size:13px;
+    }
+
+    .notification-item {
+      padding:12px 14px;
+      border-bottom:1px solid #eef2f7;
+      display:flex;
+      align-items:center;
+      gap:10px;
+    }
+
+    .notification-item:last-child {
+      border-bottom:0;
+    }
+
+    .notification-item-info {
+      flex:1;
+      min-width:0;
+    }
+
+    .notification-item-title {
+      font-weight:800;
+      font-size:13px;
+      color:var(--ink);
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+
+    .notification-item-meta {
+      color:var(--muted);
+      font-size:11px;
+      margin-top:4px;
+      line-height:1.4;
+    }
+
+    .notification-open {
+      flex-shrink:0;
+      min-height:32px;
+      padding:6px 9px;
+      background:var(--primary);
+      color:white;
+      font-size:11px;
+    }
+
+    /* CAPTURA NOVA NO SELECT */
+
+    .new-capture-select {
+      border-color:#ef4444 !important;
+    }
+
+    /* TOAST */
+
+    .new-capture-toast {
+      position:fixed;
+      right:20px;
+      bottom:20px;
+      width:360px;
+      max-width:calc(100vw - 30px);
+      background:white;
+      border:1px solid var(--border);
+      border-left:5px solid var(--danger);
+      color:var(--ink);
+      padding:14px 15px;
+      border-radius:10px;
+      box-shadow:0 12px 35px rgba(15,23,42,.22);
+      display:none;
+      z-index:2000;
+    }
+
+    .new-capture-toast.show {
+      display:block;
+    }
+
+    .new-capture-toast-title {
+      font-size:14px;
+      font-weight:800;
+      margin-bottom:5px;
+    }
+
+    .new-capture-toast-text {
+      color:var(--muted);
+      font-size:12px;
+      line-height:1.5;
+    }
+
+    .new-capture-toast-button {
+      margin-top:10px;
+      background:var(--primary);
+      color:white;
+      width:100%;
+      font-size:12px;
+    }
+
+    /* CONTEÚDO */
+
+    .grid {
+      display:grid;
+      grid-template-columns:400px minmax(0,1fr);
+      gap:20px;
+    }
+
+    .side {
+      display:flex;
+      flex-direction:column;
+      gap:20px;
+    }
+
+    .card-title {
+      padding:15px 17px;
+      border-bottom:1px solid var(--border);
+      font-weight:800;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:9px;
+    }
+
+    .body {
+      padding:17px;
+    }
+
+    .photo-frame {
+      height:clamp(320px,42vw,540px);
+      background:#0f172a;
+      display:grid;
+      place-items:center;
+      overflow:hidden;
+    }
+
+    .photo-frame img {
+      width:100%;
+      height:100%;
+      object-fit:contain;
+      object-position:center;
+      display:none;
+    }
+
+    .empty {
+      color:#94a3b8;
+      font-size:14px;
+      text-align:center;
+      padding:20px;
+    }
+
+    .photo-controls {
+      display:flex;
+      gap:8px;
+      margin-top:12px;
+    }
+
+    .photo-controls button {
+      flex:1;
+    }
+
+    .counter {
+      text-align:center;
+      color:var(--muted);
+      font-size:12px;
+      margin:9px 0 0;
+    }
+
+    .facts {
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:9px;
+    }
+
+    .fact {
+      background:#f8fafc;
+      border:1px solid #e8edf5;
+      border-radius:8px;
+      padding:10px;
+    }
+
+    .fact span {
+      display:block;
+      font-size:10px;
+      color:var(--muted);
+      text-transform:uppercase;
+      font-weight:800;
+    }
+
+    .fact b {
+      display:block;
+      margin-top:5px;
+      font-size:14px;
+      word-break:break-word;
+    }
+
+    .maps {
+      display:block;
+      margin-top:12px;
+      padding:10px;
+      text-align:center;
+      background:var(--primary);
+      color:white;
+      border-radius:8px;
+      text-decoration:none;
+      font-weight:700;
+      font-size:13px;
+    }
+
+    #map {
+      height:590px;
+    }
+
+    .gallery {
+      display:grid;
+      grid-template-columns:repeat(auto-fill,minmax(105px,1fr));
+      gap:9px;
+    }
+
+    .thumb {
+      padding:0;
+      background:#0f172a;
+      border:2px solid transparent;
+      aspect-ratio:1;
+      overflow:hidden;
+      position:relative;
+    }
+
+    .thumb.selected {
+      border-color:var(--primary);
+    }
+
+    .thumb img {
+      display:block;
+      width:100%;
+      height:100%;
+      object-fit:contain;
+      object-position:center;
+    }
+
+    .thumb small {
+      position:absolute;
+      bottom:0;
+      left:0;
+      right:0;
+      padding:4px;
+      background:rgba(15,23,42,.75);
+      color:white;
+      font-size:9px;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+
+    .load-more {
+      width:100%;
+      margin-top:12px;
+    }
+
+    .admin {
+      margin-top:20px;
+    }
+
+    .admin-grid {
+      display:grid;
+      grid-template-columns:minmax(250px,390px) 1fr;
+      gap:18px;
+    }
+
+    .form-grid {
+      display:grid;
+      gap:10px;
+    }
+
+    .form-message {
+      min-height:19px;
+      margin:8px 0 0;
+      font-size:13px;
+      color:var(--muted);
+    }
+
+    .user-list {
+      overflow:auto;
+      max-height:295px;
+    }
+
+    table {
+      width:100%;
+      border-collapse:collapse;
+      font-size:13px;
+    }
+
+    th,
+    td {
+      padding:10px;
+      border-bottom:1px solid var(--border);
+      text-align:left;
+    }
+
+    th {
+      color:var(--muted);
+      font-size:11px;
+      text-transform:uppercase;
+    }
+
+    .scope {
+      color:var(--muted);
+      font-size:12px;
+    }
+
+    .admin-toggle {
+      margin-top:20px;
+    }
+
+    .toast {
+      position:fixed;
+      right:20px;
+      bottom:20px;
+      max-width:360px;
+      background:#172033;
+      color:white;
+      padding:13px 15px;
+      border-radius:9px;
+      box-shadow:0 10px 28px rgba(0,0,0,.25);
+      display:none;
+      z-index:5;
+    }
+
+    .toast.show {
+      display:block;
+    }
+
+    @media (max-width:900px) {
+      .grid,
+      .admin-grid {
+        grid-template-columns:1fr;
+      }
+
+      #map {
+        height:420px;
+      }
+    }
+
+    @media (max-width:560px) {
+      header {
+        padding:12px 14px;
+      }
+
+      .shell {
+        padding:14px;
+      }
+
+      select {
+        min-width:100%;
+      }
+
+      .selector {
+        display:grid;
+        width:100%;
+      }
+
+      .facts {
+        grid-template-columns:1fr;
+      }
+
+      .photo-frame {
+        height:270px;
+      }
+
+      .notification {
+        width:100%;
+      }
+
+      .notification-wrapper {
+        width:100%;
+      }
+
+      .notification-button {
+        width:100%;
+        justify-content:center;
+      }
+
+      .notification-menu {
+        right:0;
+        width:100%;
+      }
+    }
   </style>
 </head>
+
 <body>
-  <header>
-    <div class="brand">Painel de capturas</div>
-    <div class="account"><span id="userName"></span><a class="logout" href="/logout">Sair</a></div>
-  </header>
 
-  <main class="shell">
-    <section class="topbar">
-      <div class="selector">
-        <label for="captureSelect">Captura</label>
-        <select id="captureSelect"><option value="">Carregando…</option></select>
-        <button id="renameButton" type="button">Renomear</button>
-        <button id="deleteButton" type="button" class="danger">Apagar</button>
-      </div>
-      <div class="notification">
-        <span id="scopeText"></span>
-        <button id="browserNotifications" type="button">Ativar alertas</button>
-        <span aria-label="Novas capturas" class="badge" id="notificationBadge">0</span>
-      </div>
-    </section>
+<header>
+  <div class="brand">Painel de capturas</div>
 
-<section class="grid">
-  <div class="side">
-    <article class="card">
-      <div class="card-title">Foto <span id="photoStatus" class="scope"></span></div>
-      <div class="photo-frame"><img id="currentPhoto" alt="Foto capturada"><div id="noPhoto" class="empty">Nenhuma foto nesta captura.</div></div>
-      <div class="body">
-        <div class="photo-controls"><button id="previousPhoto" type="button">← Anterior</button><button id="nextPhoto" type="button">Próxima →</button></div>
-        <div id="photoCounter" class="counter">Nenhuma foto</div>
-      </div>
-    </article>
-
-    <article class="card">
-      <div class="card-title">Informações</div>
-      <div class="body">
-        <div class="facts">
-          <div class="fact"><span>Nome</span><b id="captureName">—</b></div>
-          <div class="fact"><span>Página</span><b id="pageKey">—</b></div>
-          <div class="fact"><span>Última posição</span><b id="updatedAt">—</b></div>
-          <div class="fact"><span>Posições</span><b id="locationCount">0</b></div>
-          <div class="fact"><span>Fotos</span><b id="photoCount">0</b></div>
-          <div class="fact"><span>Coordenadas</span><b id="coordinates">—</b></div>
-        </div>
-        <a id="mapsButton" class="maps" target="_blank" rel="noopener" style="display:none">Abrir no mapa</a>
-      </div>
-    </article>
+  <div class="account">
+    <span id="userName"></span>
+    <a class="logout" href="/logout">Sair</a>
   </div>
+</header>
 
-  <article class="card"><div class="card-title">Localização recente <span class="scope">máximo de 300 pontos</span></div><div id="map"></div></article>
-</section>
 
-<section class="card admin" id="historyCard">
-  <div class="card-title">Fotos recentes <span id="historyDescription" class="scope"></span></div>
-  <div class="body"><div id="gallery" class="gallery"><div class="empty">Selecione uma captura.</div></div><button id="loadMorePhotos" type="button" class="load-more" style="display:none">Carregar mais fotos</button></div>
-</section>
+<main class="shell">
+
+  <section class="topbar">
+
+    <div class="selector">
+
+      <label for="captureSelect">Captura</label>
+
+      <select id="captureSelect">
+        <option value="">Carregando…</option>
+      </select>
+
+      <button id="renameButton" type="button">
+        Renomear
+      </button>
+
+      <button id="deleteButton" type="button" class="danger">
+        Apagar
+      </button>
+
+    </div>
+
+
+    <div class="notification">
+
+      <span id="scopeText"></span>
+
+      <button id="browserNotifications" type="button">
+        Ativar alertas
+      </button>
+
+
+      <div class="notification-wrapper">
+
+        <button
+          id="notificationButton"
+          class="notification-button"
+          type="button"
+          aria-expanded="false"
+          aria-controls="notificationMenu"
+        >
+
+          <span class="notification-icon">🔔</span>
+
+          <span>Novas</span>
+
+          <span
+            aria-label="Novas capturas"
+            class="badge"
+            id="notificationBadge"
+          >
+            0
+          </span>
+
+        </button>
+
+
+        <div
+          id="notificationMenu"
+          class="notification-menu"
+        >
+
+          <div class="notification-header">
+
+            <strong>Novas capturas</strong>
+
+            <button
+              id="clearNotifications"
+              type="button"
+              class="notification-clear"
+            >
+              Limpar
+            </button>
+
+          </div>
+
+
+          <div
+            id="notificationList"
+            class="notification-list"
+          >
+
+            <div class="notification-empty">
+              Nenhuma captura nova.
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  </section>
+
+
+  <section class="grid">
+
+    <div class="side">
+
+      <article class="card">
+
+        <div class="card-title">
+          Foto
+          <span id="photoStatus" class="scope"></span>
+        </div>
+
+        <div class="photo-frame">
+
+          <img
+            id="currentPhoto"
+            alt="Foto capturada"
+          >
+
+          <div id="noPhoto" class="empty">
+            Nenhuma foto nesta captura.
+          </div>
+
+        </div>
+
+        <div class="body">
+
+          <div class="photo-controls">
+
+            <button id="previousPhoto" type="button">
+              ← Anterior
+            </button>
+
+            <button id="nextPhoto" type="button">
+              Próxima →
+            </button>
+
+          </div>
+
+          <div id="photoCounter" class="counter">
+            Nenhuma foto
+          </div>
+
+        </div>
+
+      </article>
+
+
+      <article class="card">
+
+        <div class="card-title">
+          Informações
+        </div>
+
+        <div class="body">
+
+          <div class="facts">
+
+            <div class="fact">
+              <span>Nome</span>
+              <b id="captureName">—</b>
+            </div>
+
+            <div class="fact">
+              <span>Página</span>
+              <b id="pageKey">—</b>
+            </div>
+
+            <div class="fact">
+              <span>Última posição</span>
+              <b id="updatedAt">—</b>
+            </div>
+
+            <div class="fact">
+              <span>Posições</span>
+              <b id="locationCount">0</b>
+            </div>
+
+            <div class="fact">
+              <span>Fotos</span>
+              <b id="photoCount">0</b>
+            </div>
+
+            <div class="fact">
+              <span>Coordenadas</span>
+              <b id="coordinates">—</b>
+            </div>
+
+          </div>
+
+
+          <a
+            id="mapsButton"
+            class="maps"
+            target="_blank"
+            rel="noopener"
+            style="display:none"
+          >
+            Abrir no mapa
+          </a>
+
+        </div>
+
+      </article>
+
+    </div>
+
+
+    <article class="card">
+
+      <div class="card-title">
+
+        Localização recente
+
+        <span class="scope">
+          máximo de 300 pontos
+        </span>
+
+      </div>
+
+      <div id="map"></div>
+
+    </article>
+
+  </section>
+
+
+  <section class="card admin" id="historyCard">
+
+    <div class="card-title">
+
+      Fotos recentes
+
+      <span id="historyDescription" class="scope"></span>
+
+    </div>
+
+    <div class="body">
+
+      <div id="gallery" class="gallery">
+
+        <div class="empty">
+          Selecione uma captura.
+        </div>
+
+      </div>
+
+      <button
+        id="loadMorePhotos"
+        type="button"
+        class="load-more"
+        style="display:none"
+      >
+        Carregar mais fotos
+      </button>
+
+    </div>
+
+  </section>
+
 
 {% if current_user.is_admin %}
-<div class="admin-toggle"><button id="toggleAdminPanel" type="button" class="primary" aria-controls="adminPanel" aria-expanded="false">Gerenciar usuários</button></div>
-<section class="card admin" id="adminPanel" hidden>
-  <div class="card-title">Usuários do painel <span class="scope">Cada usuário visualiza apenas a página associada.</span></div>
-  <div class="body admin-grid">
-    <form id="createUserForm" class="form-grid">
-      <label for="newUsername">Usuário</label><input id="newUsername" required minlength="3" maxlength="32" autocomplete="username" placeholder="usuario2">
-      <label for="newPassword">Senha inicial</label><input id="newPassword" type="password" required minlength="8" autocomplete="new-password" placeholder="Mínimo de 8 caracteres">
-      <label for="newPageKey">Página associada</label><input id="newPageKey" required maxlength="64" pattern="[a-z0-9][a-z0-9_-]*" placeholder="index2">
-      <span class="scope">Ex.: <strong>index2</strong> libera somente as capturas de <strong>/index2.html</strong>.</span>
-      <button type="submit" class="primary">Adicionar usuário</button><div id="userFormMessage" class="form-message" role="status"></div>
-    </form>
-    <div class="user-list"><table><thead><tr><th>Usuário</th><th>Página</th><th>Status</th><th>Criado em</th><th>Ação</th></tr></thead><tbody id="userRows"><tr><td colspan="5">Carregando…</td></tr></tbody></table></div>
+
+  <div class="admin-toggle">
+
+    <button
+      id="toggleAdminPanel"
+      type="button"
+      class="primary"
+      aria-controls="adminPanel"
+      aria-expanded="false"
+    >
+      Gerenciar usuários
+    </button>
+
   </div>
-</section>
+
+
+  <section
+    class="card admin"
+    id="adminPanel"
+    hidden
+  >
+
+    <div class="card-title">
+
+      Usuários do painel
+
+      <span class="scope">
+        Cada usuário visualiza apenas a página associada.
+      </span>
+
+    </div>
+
+
+    <div class="body admin-grid">
+
+      <form
+        id="createUserForm"
+        class="form-grid"
+      >
+
+        <label for="newUsername">
+          Usuário
+        </label>
+
+        <input
+          id="newUsername"
+          required
+          minlength="3"
+          maxlength="32"
+          autocomplete="username"
+          placeholder="usuario2"
+        >
+
+
+        <label for="newPassword">
+          Senha inicial
+        </label>
+
+        <input
+          id="newPassword"
+          type="password"
+          required
+          minlength="8"
+          autocomplete="new-password"
+          placeholder="Mínimo de 8 caracteres"
+        >
+
+
+        <label for="newPageKey">
+          Página associada
+        </label>
+
+        <input
+          id="newPageKey"
+          required
+          maxlength="64"
+          pattern="[a-z0-9][a-z0-9_-]*"
+          placeholder="index2"
+        >
+
+
+        <span class="scope">
+          Ex.: <strong>index2</strong> libera somente as capturas de
+          <strong>/index2.html</strong>.
+        </span>
+
+
+        <button
+          type="submit"
+          class="primary"
+        >
+          Adicionar usuário
+        </button>
+
+
+        <div
+          id="userFormMessage"
+          class="form-message"
+          role="status"
+        ></div>
+
+      </form>
+
+
+      <div class="user-list">
+
+        <table>
+
+          <thead>
+
+            <tr>
+              <th>Usuário</th>
+              <th>Página</th>
+              <th>Status</th>
+              <th>Criado em</th>
+              <th>Ação</th>
+            </tr>
+
+          </thead>
+
+          <tbody id="userRows">
+
+            <tr>
+              <td colspan="5">
+                Carregando…
+              </td>
+            </tr>
+
+          </tbody>
+
+        </table>
+
+      </div>
+
+    </div>
+
+  </section>
+
 {% endif %}
 
-  </main>
-  <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+</main>
 
-  <script>
-    const currentUser = {{ current_user|tojson }};
-    const isAdmin = Boolean(currentUser.is_admin);
-    const state = { captures: [], currentCaptureId: null, capture: null, locations: [], photos: [], currentPhotoId: null, hasMorePhotos: false, initialized: false, pendingNotifications: 0, refreshInProgress: false };
-    const captureSelect = document.getElementById("captureSelect");
-    const currentPhoto = document.getElementById("currentPhoto");
-    const noPhoto = document.getElementById("noPhoto");
-    const gallery = document.getElementById("gallery");
-    const notificationBadge = document.getElementById("notificationBadge");
-    const map = L.map("map", { zoomControl: true }).setView([-14.235, -51.9253], 4);
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: "© OpenStreetMap" }).addTo(map);
-    let mapLayers = [];
-    let toastTimer = null;
 
-    document.getElementById("userName").textContent = currentUser.username;
-    document.getElementById("scopeText").textContent = isAdmin ? "Administrador · todas as páginas" : `Página: ${currentUser.page_key}`;
+<!-- TOAST DE NOVA CAPTURA -->
 
-    async function fetchJson(url, options = {}) {
-      const response = await fetch(url, { cache: "no-store", credentials: "same-origin", ...options });
-      const data = await response.json().catch(() => ({}));
-      if (response.status === 401) { window.location.href = "/login"; throw new Error("Sessão encerrada."); }
-      if (!response.ok || !data.success) throw new Error(data.error || "Não foi possível concluir a ação.");
-      return data;
+<div
+  id="newCaptureToast"
+  class="new-capture-toast"
+  role="status"
+  aria-live="polite"
+>
+
+  <div
+    id="newCaptureToastTitle"
+    class="new-capture-toast-title"
+  >
+    Nova captura recebida
+  </div>
+
+  <div
+    id="newCaptureToastText"
+    class="new-capture-toast-text"
+  >
+  </div>
+
+  <button
+    id="newCaptureToastButton"
+    class="new-capture-toast-button"
+    type="button"
+  >
+    Abrir captura
+  </button>
+
+</div>
+
+
+<div
+  id="toast"
+  class="toast"
+  role="status"
+  aria-live="polite"
+></div>
+
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+
+<script>
+
+  const currentUser = {{ current_user|tojson }};
+
+  const isAdmin = Boolean(currentUser.is_admin);
+
+
+  const state = {
+
+    captures: [],
+
+    currentCaptureId: null,
+
+    capture: null,
+
+    locations: [],
+
+    photos: [],
+
+    currentPhotoId: null,
+
+    hasMorePhotos: false,
+
+    initialized: false,
+
+    pendingNotifications: [],
+
+    refreshInProgress: false
+
+  };
+
+
+  const captureSelect =
+    document.getElementById("captureSelect");
+
+  const currentPhoto =
+    document.getElementById("currentPhoto");
+
+  const noPhoto =
+    document.getElementById("noPhoto");
+
+  const gallery =
+    document.getElementById("gallery");
+
+  const notificationBadge =
+    document.getElementById("notificationBadge");
+
+  const notificationButton =
+    document.getElementById("notificationButton");
+
+  const notificationMenu =
+    document.getElementById("notificationMenu");
+
+  const notificationList =
+    document.getElementById("notificationList");
+
+  const map =
+    L.map("map", {
+      zoomControl: true
+    }).setView(
+      [-14.235, -51.9253],
+      4
+    );
+
+
+  L.tileLayer(
+    "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+    {
+      maxZoom: 19,
+      attribution: "© OpenStreetMap"
+    }
+  ).addTo(map);
+
+
+  let mapLayers = [];
+
+  let toastTimer = null;
+
+  let newCaptureToastTimer = null;
+
+
+  document.getElementById("userName").textContent =
+    currentUser.username;
+
+
+  document.getElementById("scopeText").textContent =
+    isAdmin
+      ? "Administrador · todas as páginas"
+      : `Página: ${currentUser.page_key}`;
+
+
+  /*
+   * ============================================================
+   * FUNÇÕES GERAIS
+   * ============================================================
+   */
+
+
+  async function fetchJson(url, options = {}) {
+
+    const response = await fetch(
+      url,
+      {
+        cache:"no-store",
+        credentials:"same-origin",
+        ...options
+      }
+    );
+
+
+    const data =
+      await response
+        .json()
+        .catch(() => ({}));
+
+
+    if (response.status === 401) {
+
+      window.location.href = "/login";
+
+      throw new Error("Sessão encerrada.");
+
     }
 
-    function formatDate(value) {
-      if (!value) return "—";
-      const date = new Date(value);
-      return Number.isNaN(date.valueOf()) ? "—" : date.toLocaleString("pt-BR");
+
+    if (!response.ok || !data.success) {
+
+      throw new Error(
+        data.error ||
+        "Não foi possível concluir a ação."
+      );
+
     }
 
-    function captureLabel(capture, index) {
-      const name = capture.display_name || `Captura ${state.captures.length - index}`;
-      return `${name} · ${capture.page_key} · ${formatDate(capture.created_at)}`;
+
+    return data;
+
+  }
+
+
+  function formatDate(value) {
+
+    if (!value) return "—";
+
+
+    const date = new Date(value);
+
+
+    return Number.isNaN(date.valueOf())
+      ? "—"
+      : date.toLocaleString("pt-BR");
+
+  }
+
+
+  function captureLabel(capture, index) {
+
+    const name =
+      capture.display_name ||
+      `Captura ${state.captures.length - index}`;
+
+
+    return `${name} · ${capture.page_key} · ${formatDate(capture.created_at)}`;
+
+  }
+
+
+  function getCaptureName(capture) {
+
+    if (!capture) return "Captura";
+
+
+    return capture.display_name ||
+      `Captura ${getCaptureNumber(capture)}`;
+
+  }
+
+
+  function getCaptureNumber(capture) {
+
+    const index =
+      state.captures.findIndex(
+        item =>
+          item.capture_id === capture.capture_id
+      );
+
+
+    if (index === -1) return "?";
+
+
+    return state.captures.length - index;
+
+  }
+
+
+  function showToast(message) {
+
+    const toast =
+      document.getElementById("toast");
+
+
+    toast.textContent = message;
+
+    toast.classList.add("show");
+
+
+    clearTimeout(toastTimer);
+
+
+    toastTimer =
+      setTimeout(
+        () => toast.classList.remove("show"),
+        5000
+      );
+
+  }
+
+
+  /*
+   * ============================================================
+   * NOTIFICAÇÕES
+   * ============================================================
+   */
+
+
+  function updateNotificationBadge() {
+
+    const count =
+      state.pendingNotifications.length;
+
+
+    notificationBadge.textContent =
+      count;
+
+
+    notificationBadge.style.display =
+      count ? "inline-block" : "none";
+
+
+    notificationButton.classList.toggle(
+      "has-new",
+      count > 0
+    );
+
+
+    document.title =
+      count
+        ? `(${count}) Painel de capturas`
+        : "Painel de capturas";
+
+
+    renderNotificationList();
+
+  }
+
+
+  function renderNotificationList() {
+
+    notificationList.replaceChildren();
+
+
+    if (!state.pendingNotifications.length) {
+
+      const empty =
+        document.createElement("div");
+
+
+      empty.className =
+        "notification-empty";
+
+
+      empty.textContent =
+        "Nenhuma captura nova.";
+
+
+      notificationList.appendChild(empty);
+
+      return;
+
     }
 
-    function showToast(message) {
-      const toast = document.getElementById("toast");
-      toast.textContent = message;
-      toast.classList.add("show");
-      clearTimeout(toastTimer);
-      toastTimer = setTimeout(() => toast.classList.remove("show"), 5000);
+
+    state.pendingNotifications.forEach(
+      capture => {
+
+        const item =
+          document.createElement("div");
+
+
+        item.className =
+          "notification-item";
+
+
+        const info =
+          document.createElement("div");
+
+
+        info.className =
+          "notification-item-info";
+
+
+        const title =
+          document.createElement("div");
+
+
+        title.className =
+          "notification-item-title";
+
+
+        title.textContent =
+          getCaptureName(capture);
+
+
+        const meta =
+          document.createElement("div");
+
+
+        meta.className =
+          "notification-item-meta";
+
+
+        meta.textContent =
+          `${capture.page_key} · ${formatDate(capture.created_at)}`;
+
+
+        info.append(
+          title,
+          meta
+        );
+
+
+        const openButton =
+          document.createElement("button");
+
+
+        openButton.type =
+          "button";
+
+
+        openButton.className =
+          "notification-open";
+
+
+        openButton.textContent =
+          "Abrir";
+
+
+        openButton.addEventListener(
+          "click",
+          async event => {
+
+            event.stopPropagation();
+
+            await openCaptureFromNotification(
+              capture.capture_id
+            );
+
+          }
+        );
+
+
+        item.append(
+          info,
+          openButton
+        );
+
+
+        item.addEventListener(
+          "click",
+          async () => {
+
+            await openCaptureFromNotification(
+              capture.capture_id
+            );
+
+          }
+        );
+
+
+        notificationList.appendChild(item);
+
+      }
+    );
+
+  }
+
+
+  async function openCaptureFromNotification(
+    captureId
+  ) {
+
+    const capture =
+      state.captures.find(
+        item =>
+          item.capture_id === captureId
+      );
+
+
+    if (!capture) {
+
+      showToast(
+        "Essa captura não está mais disponível."
+      );
+
+      return;
+
     }
 
-    function updateNotificationBadge() {
-      notificationBadge.textContent = state.pendingNotifications;
-      notificationBadge.style.display = state.pendingNotifications ? "inline-block" : "none";
-      document.title = state.pendingNotifications ? `(${state.pendingNotifications}) Painel de capturas` : "Painel de capturas";
+
+    state.currentCaptureId =
+      captureId;
+
+
+    captureSelect.value =
+      captureId;
+
+
+    removeNotification(
+      captureId
+    );
+
+
+    closeNotificationMenu();
+
+
+    await loadCapture(
+      captureId
+    );
+
+  }
+
+
+  function removeNotification(captureId) {
+
+    state.pendingNotifications =
+      state.pendingNotifications.filter(
+        capture =>
+          capture.capture_id !== captureId
+      );
+
+
+    updateNotificationBadge();
+
+  }
+
+
+  function clearAllNotifications() {
+
+    state.pendingNotifications = [];
+
+    updateNotificationBadge();
+
+  }
+
+
+  function notifyNewCaptures(newCaptures) {
+
+    if (!newCaptures.length) return;
+
+
+    /*
+     * Evita colocar a mesma captura duas vezes
+     * na lista de notificações.
+     */
+
+    const existingIds =
+      new Set(
+        state.pendingNotifications.map(
+          capture =>
+            capture.capture_id
+        )
+      );
+
+
+    newCaptures.forEach(
+      capture => {
+
+        if (!existingIds.has(capture.capture_id)) {
+
+          state.pendingNotifications.push(
+            capture
+          );
+
+        }
+
+      }
+    );
+
+
+    updateNotificationBadge();
+
+
+    /*
+     * Toast mostrando especificamente
+     * qual captura chegou.
+     */
+
+    const newest =
+      newCaptures[newCaptures.length - 1];
+
+
+    const title =
+      document.getElementById(
+        "newCaptureToastTitle"
+      );
+
+
+    const text =
+      document.getElementById(
+        "newCaptureToastText"
+      );
+
+
+    const button =
+      document.getElementById(
+        "newCaptureToastButton"
+      );
+
+
+    title.textContent =
+      newCaptures.length === 1
+        ? "Nova captura recebida"
+        : `${newCaptures.length} novas capturas recebidas`;
+
+
+    if (newCaptures.length === 1) {
+
+      text.textContent =
+        `${getCaptureName(newest)} · ${newest.page_key} · ${formatDate(newest.created_at)}`;
+
+    } else {
+
+      text.textContent =
+        `A mais recente: ${getCaptureName(newest)} · ${formatDate(newest.created_at)}`;
+
     }
 
-    function notifyNewCaptures(newCaptures) {
-      if (!newCaptures.length) return;
-      state.pendingNotifications += newCaptures.length;
-      updateNotificationBadge();
-      const message = `${newCaptures.length} nova${newCaptures.length > 1 ? "s" : ""} captura${newCaptures.length > 1 ? "s" : ""} recebida${newCaptures.length > 1 ? "s" : ""}.`;
-      showToast(message);
-      if ("Notification" in window && Notification.permission === "granted") new Notification("Novas capturas", { body: message });
+
+    button.onclick =
+      () => openCaptureFromNotification(
+        newest.capture_id
+      );
+
+
+    const toast =
+      document.getElementById(
+        "newCaptureToast"
+      );
+
+
+    toast.classList.add("show");
+
+
+    clearTimeout(
+      newCaptureToastTimer
+    );
+
+
+    newCaptureToastTimer =
+      setTimeout(
+        () => toast.classList.remove("show"),
+        9000
+      );
+
+
+    /*
+     * Notificação nativa do navegador.
+     */
+
+    if (
+      "Notification" in window &&
+      Notification.permission === "granted"
+    ) {
+
+      new Notification(
+        newCaptures.length === 1
+          ? "Nova captura"
+          : "Novas capturas",
+        {
+          body:
+            newCaptures.length === 1
+              ? `${getCaptureName(newest)} · ${formatDate(newest.created_at)}`
+              : `${newCaptures.length} novas capturas recebidas.`
+        }
+      );
+
     }
 
-    function renderSelector() {
-      const selected = state.currentCaptureId;
-      captureSelect.replaceChildren();
-      if (!state.captures.length) {
-        captureSelect.add(new Option("Nenhuma captura disponível", ""));
+  }
+
+
+  function closeNotificationMenu() {
+
+    notificationMenu.classList.remove(
+      "open"
+    );
+
+
+    notificationButton.setAttribute(
+      "aria-expanded",
+      "false"
+    );
+
+  }
+
+
+  notificationButton.addEventListener(
+    "click",
+    event => {
+
+      event.stopPropagation();
+
+
+      const open =
+        notificationMenu.classList.toggle(
+          "open"
+        );
+
+
+      notificationButton.setAttribute(
+        "aria-expanded",
+        String(open)
+      );
+
+    }
+  );
+
+
+  document.addEventListener(
+    "click",
+    event => {
+
+      if (
+        !event.target.closest(
+          ".notification-wrapper"
+        )
+      ) {
+
+        closeNotificationMenu();
+
+      }
+
+    }
+  );
+
+
+  document.getElementById(
+    "clearNotifications"
+  ).addEventListener(
+    "click",
+    event => {
+
+      event.stopPropagation();
+
+      clearAllNotifications();
+
+    }
+  );
+
+
+  /*
+   * ============================================================
+   * CAPTURAS
+   * ============================================================
+   */
+
+
+  function renderSelector() {
+
+    const selected =
+      state.currentCaptureId;
+
+
+    captureSelect.replaceChildren();
+
+
+    if (!state.captures.length) {
+
+      captureSelect.add(
+        new Option(
+          "Nenhuma captura disponível",
+          ""
+        )
+      );
+
+      return;
+
+    }
+
+
+    state.captures.forEach(
+      (capture, index) => {
+
+        const option =
+          new Option(
+            captureLabel(
+              capture,
+              index
+            ),
+            capture.capture_id
+          );
+
+
+        /*
+         * Marca visualmente capturas
+         * que possuem notificação pendente.
+         */
+
+        const isNew =
+          state.pendingNotifications.some(
+            item =>
+              item.capture_id ===
+              capture.capture_id
+          );
+
+
+        if (isNew) {
+
+          option.text =
+            `🔴 ${option.text}`;
+
+        }
+
+
+        captureSelect.add(
+          option
+        );
+
+      }
+    );
+
+
+    captureSelect.value =
+      state.captures.some(
+        capture =>
+          capture.capture_id === selected
+      )
+        ? selected
+        : state.captures[0].capture_id;
+
+
+    captureSelect.classList.toggle(
+      "new-capture-select",
+      state.pendingNotifications.some(
+        capture =>
+          capture.capture_id ===
+          captureSelect.value
+      )
+    );
+
+  }
+
+
+  async function loadCaptures(
+    { notify = false } = {}
+  ) {
+
+    const previousIds =
+      new Set(
+        state.captures.map(
+          capture =>
+            capture.capture_id
+        )
+      );
+
+
+    const data =
+      await fetchJson(
+        "/api/captures"
+      );
+
+
+    state.captures =
+      data.captures || [];
+
+
+    const newCaptures =
+      state.initialized && notify
+        ? state.captures.filter(
+            capture =>
+              !previousIds.has(
+                capture.capture_id
+              )
+          )
+        : [];
+
+
+    if (
+      !state.currentCaptureId ||
+      !state.captures.some(
+        capture =>
+          capture.capture_id ===
+          state.currentCaptureId
+      )
+    ) {
+
+      state.currentCaptureId =
+        state.captures[0]?.capture_id ||
+        null;
+
+    }
+
+
+    renderSelector();
+
+
+    if (newCaptures.length) {
+
+      notifyNewCaptures(
+        newCaptures
+      );
+
+    }
+
+
+    state.initialized = true;
+
+  }
+
+
+  /*
+   * ============================================================
+   * FOTOS
+   * ============================================================
+   */
+
+
+  function mergePhotos(
+    newPhotos,
+    preserveGallery
+  ) {
+
+    if (!preserveGallery)
+      return newPhotos;
+
+
+    const seen =
+      new Set(
+        newPhotos.map(
+          photo => photo.id
+        )
+      );
+
+
+    return [
+      ...newPhotos,
+      ...state.photos.filter(
+        photo =>
+          !seen.has(photo.id)
+      )
+    ];
+
+  }
+
+
+  async function loadCapture(
+    captureId,
+    { preserveGallery = false } = {}
+  ) {
+
+    if (!captureId) {
+
+      clearDashboard();
+
+      return;
+
+    }
+
+
+    const data =
+      await fetchJson(
+        `/api/captures/${encodeURIComponent(captureId)}?photo_limit=24&location_limit=300`
+      );
+
+
+    state.currentCaptureId =
+      captureId;
+
+
+    state.capture =
+      data.capture;
+
+
+    state.locations =
+      data.locations || [];
+
+
+    state.photos =
+      mergePhotos(
+        data.photos || [],
+        preserveGallery
+      );
+
+
+    state.hasMorePhotos =
+      Boolean(
+        data.has_more_photos
+      );
+
+
+    if (
+      !state.photos.some(
+        photo =>
+          photo.id ===
+          state.currentPhotoId
+      )
+    ) {
+
+      state.currentPhotoId =
+        state.photos[0]?.id ||
+        null;
+
+    }
+
+
+    renderDashboard();
+
+  }
+
+
+  function clearDashboard() {
+
+    state.capture = null;
+
+    state.photos = [];
+
+    state.locations = [];
+
+    state.currentPhotoId = null;
+
+    renderDashboard();
+
+  }
+
+
+  function renderDashboard() {
+
+    const capture =
+      state.capture;
+
+
+    document.getElementById(
+      "renameButton"
+    ).disabled =
+      !capture;
+
+
+    document.getElementById(
+      "deleteButton"
+    ).disabled =
+      !capture;
+
+
+    if (!capture) {
+
+      document.getElementById(
+        "captureName"
+      ).textContent = "—";
+
+
+      document.getElementById(
+        "pageKey"
+      ).textContent = "—";
+
+
+      document.getElementById(
+        "updatedAt"
+      ).textContent = "—";
+
+
+      document.getElementById(
+        "locationCount"
+      ).textContent = "0";
+
+
+      document.getElementById(
+        "photoCount"
+      ).textContent = "0";
+
+
+      document.getElementById(
+        "coordinates"
+      ).textContent = "—";
+
+
+      document.getElementById(
+        "mapsButton"
+      ).style.display = "none";
+
+
+      renderPhotos();
+
+      renderMap();
+
+      return;
+
+    }
+
+
+    document.getElementById(
+      "captureName"
+    ).textContent =
+      capture.display_name ||
+      "Sem nome";
+
+
+    document.getElementById(
+      "pageKey"
+    ).textContent =
+      capture.page_key;
+
+
+    document.getElementById(
+      "updatedAt"
+    ).textContent =
+      formatDate(
+        capture.updated_at
+      );
+
+
+    document.getElementById(
+      "locationCount"
+    ).textContent =
+      capture.location_total;
+
+
+    document.getElementById(
+      "photoCount"
+    ).textContent =
+      capture.photo_total;
+
+
+    document.getElementById(
+      "coordinates"
+    ).textContent =
+      capture.latitude == null
+        ? "—"
+        : `${Number(capture.latitude).toFixed(6)}, ${Number(capture.longitude).toFixed(6)}`;
+
+
+    const maps =
+      document.getElementById(
+        "mapsButton"
+      );
+
+
+    maps.style.display =
+      capture.maps_url
+        ? "block"
+        : "none";
+
+
+    maps.href =
+      capture.maps_url || "#";
+
+
+    /*
+     * Se o usuário abriu uma captura nova
+     * pelo seletor normal, também removemos
+     * a notificação correspondente.
+     */
+
+    if (
+      state.pendingNotifications.some(
+        item =>
+          item.capture_id ===
+          capture.capture_id
+      )
+    ) {
+
+      removeNotification(
+        capture.capture_id
+      );
+
+    }
+
+
+    renderSelector();
+
+    renderPhotos();
+
+    renderMap();
+
+  }
+
+
+  function selectedPhotoIndex() {
+
+    return state.photos.findIndex(
+      photo =>
+        photo.id ===
+        state.currentPhotoId
+    );
+
+  }
+
+
+  function preloadAdjacentPhotos(index) {
+
+    [
+      state.photos[index - 1],
+      state.photos[index + 1]
+    ]
+      .filter(Boolean)
+      .forEach(
+        photo => {
+
+          const image =
+            new Image();
+
+          image.src =
+            photo.photo_url;
+
+        }
+      );
+
+  }
+
+
+  function renderPhotos() {
+
+    const photo =
+      state.photos.find(
+        item =>
+          item.id ===
+          state.currentPhotoId
+      );
+
+
+    const currentIndex =
+      selectedPhotoIndex();
+
+
+    if (!photo) {
+
+      currentPhoto.style.display =
+        "none";
+
+
+      noPhoto.style.display =
+        "block";
+
+
+      document.getElementById(
+        "photoCounter"
+      ).textContent =
+        "Nenhuma foto";
+
+
+      document.getElementById(
+        "photoStatus"
+      ).textContent =
+        "";
+
+    } else {
+
+      noPhoto.style.display =
+        "none";
+
+
+      currentPhoto.style.display =
+        "block";
+
+
+      if (
+        currentPhoto.dataset.photoId !==
+        String(photo.id)
+      ) {
+
+        currentPhoto.src =
+          photo.photo_url;
+
+        currentPhoto.dataset.photoId =
+          photo.id;
+
+      }
+
+
+      document.getElementById(
+        "photoCounter"
+      ).textContent =
+        `Foto carregada ${currentIndex + 1} de ${state.capture.photo_total}`;
+
+
+      document.getElementById(
+        "photoStatus"
+      ).textContent =
+        formatDate(
+          photo.created_at
+        );
+
+
+      preloadAdjacentPhotos(
+        currentIndex
+      );
+
+    }
+
+
+    document.getElementById(
+      "previousPhoto"
+    ).disabled =
+      currentIndex <= 0;
+
+
+    document.getElementById(
+      "nextPhoto"
+    ).disabled =
+      !photo ||
+      (
+        currentIndex >=
+        state.photos.length - 1 &&
+        !state.hasMorePhotos
+      );
+
+
+    document.getElementById(
+      "historyDescription"
+    ).textContent =
+      state.capture
+        ? `${state.photos.length} de ${state.capture.photo_total} carregadas`
+        : "";
+
+
+    gallery.replaceChildren();
+
+
+    if (!state.photos.length) {
+
+      gallery.innerHTML =
+        '<div class="empty">Nenhuma foto nesta captura.</div>';
+
+    } else {
+
+      const fragment =
+        document.createDocumentFragment();
+
+
+      state.photos.forEach(
+        photoItem => {
+
+          const item =
+            document.createElement(
+              "button"
+            );
+
+
+          item.type = "button";
+
+
+          item.className =
+            `thumb${
+              photoItem.id ===
+              state.currentPhotoId
+                ? " selected"
+                : ""
+            }`;
+
+
+          const image =
+            document.createElement(
+              "img"
+            );
+
+
+          image.src =
+            photoItem.photo_url;
+
+
+          image.alt =
+            `Foto de ${formatDate(
+              photoItem.created_at
+            )}`;
+
+
+          image.loading =
+            "lazy";
+
+
+          image.decoding =
+            "async";
+
+
+          const label =
+            document.createElement(
+              "small"
+            );
+
+
+          label.textContent =
+            formatDate(
+              photoItem.created_at
+            );
+
+
+          item.append(
+            image,
+            label
+          );
+
+
+          item.addEventListener(
+            "click",
+            () => {
+
+              state.currentPhotoId =
+                photoItem.id;
+
+              renderPhotos();
+
+            }
+          );
+
+
+          fragment.append(
+            item
+          );
+
+        }
+      );
+
+
+      gallery.append(
+        fragment
+      );
+
+    }
+
+
+    document.getElementById(
+      "loadMorePhotos"
+    ).style.display =
+      state.hasMorePhotos
+        ? "block"
+        : "none";
+
+  }
+
+
+  async function loadMorePhotos() {
+
+    const lastPhoto =
+      state.photos[
+        state.photos.length - 1
+      ];
+
+
+    if (
+      !state.currentCaptureId ||
+      !lastPhoto ||
+      !state.hasMorePhotos
+    ) return;
+
+
+    const button =
+      document.getElementById(
+        "loadMorePhotos"
+      );
+
+
+    button.disabled = true;
+
+    button.textContent =
+      "Carregando…";
+
+
+    try {
+
+      const data =
+        await fetchJson(
+          `/api/captures/${encodeURIComponent(state.currentCaptureId)}/photos?before_id=${encodeURIComponent(lastPhoto.id)}&limit=24`
+        );
+
+
+      const knownIds =
+        new Set(
+          state.photos.map(
+            photo => photo.id
+          )
+        );
+
+
+      state.photos.push(
+        ...(data.photos || [])
+          .filter(
+            photo =>
+              !knownIds.has(
+                photo.id
+              )
+          )
+      );
+
+
+      state.hasMorePhotos =
+        Boolean(
+          data.has_more_photos
+        );
+
+
+      renderPhotos();
+
+    } catch (error) {
+
+      showToast(
+        error.message
+      );
+
+    } finally {
+
+      button.disabled = false;
+
+      button.textContent =
+        "Carregar mais fotos";
+
+    }
+
+  }
+
+
+  /*
+   * ============================================================
+   * MAPA
+   * ============================================================
+   */
+
+
+  function renderMap() {
+
+    mapLayers.forEach(
+      layer =>
+        map.removeLayer(layer)
+    );
+
+
+    mapLayers = [];
+
+
+    if (!state.locations.length)
+      return;
+
+
+    const points =
+      state.locations.map(
+        location => [
+          Number(location.latitude),
+          Number(location.longitude)
+        ]
+      );
+
+
+    if (points.length > 1) {
+
+      const line =
+        L.polyline(
+          points,
+          {
+            color:"#2563eb",
+            weight:4
+          }
+        ).addTo(map);
+
+
+      mapLayers.push(
+        line
+      );
+
+    }
+
+
+    state.locations.forEach(
+      (location, index) => {
+
+        const marker =
+          L.circleMarker(
+            [
+              Number(location.latitude),
+              Number(location.longitude)
+            ],
+            {
+              radius:4,
+              color:"#2563eb"
+            }
+          )
+          .bindPopup(
+            `Posição ${index + 1}<br>${formatDate(location.created_at)}`
+          )
+          .addTo(map);
+
+
+        mapLayers.push(
+          marker
+        );
+
+      }
+    );
+
+
+    const current =
+      L.marker(
+        points[
+          points.length - 1
+        ]
+      )
+      .bindPopup(
+        "Última posição"
+      )
+      .addTo(map);
+
+
+    mapLayers.push(
+      current
+    );
+
+
+    if (points.length === 1) {
+
+      map.setView(
+        points[0],
+        16
+      );
+
+    } else {
+
+      map.fitBounds(
+        points,
+        {
+          padding:[28,28],
+          maxZoom:16
+        }
+      );
+
+    }
+
+  }
+
+
+  /*
+   * ============================================================
+   * EVENTOS DA CAPTURA
+   * ============================================================
+   */
+
+
+  captureSelect.addEventListener(
+    "change",
+    async () => {
+
+      state.currentCaptureId =
+        captureSelect.value ||
+        null;
+
+
+      state.photos = [];
+
+      state.currentPhotoId =
+        null;
+
+
+      /*
+       * Se selecionar uma captura que
+       * estava marcada como nova,
+       * a notificação é retirada.
+       */
+
+      if (state.currentCaptureId) {
+
+        removeNotification(
+          state.currentCaptureId
+        );
+
+      }
+
+
+      await loadCapture(
+        state.currentCaptureId
+      );
+
+    }
+  );
+
+
+  document.getElementById(
+    "previousPhoto"
+  ).addEventListener(
+    "click",
+    () => {
+
+      const index =
+        selectedPhotoIndex();
+
+
+      if (index > 0) {
+
+        state.currentPhotoId =
+          state.photos[index - 1].id;
+
+
+        renderPhotos();
+
+      }
+
+    }
+  );
+
+
+  document.getElementById(
+    "nextPhoto"
+  ).addEventListener(
+    "click",
+    async () => {
+
+      const index =
+        selectedPhotoIndex();
+
+
+      if (
+        index <
+        state.photos.length - 1
+      ) {
+
+        state.currentPhotoId =
+          state.photos[index + 1].id;
+
+
+        renderPhotos();
+
         return;
+
       }
-      state.captures.forEach((capture, index) => captureSelect.add(new Option(captureLabel(capture, index), capture.capture_id)));
-      captureSelect.value = state.captures.some(capture => capture.capture_id === selected) ? selected : state.captures[0].capture_id;
-    }
 
-    async function loadCaptures({ notify = false } = {}) {
-      const previousIds = new Set(state.captures.map(capture => capture.capture_id));
-      const data = await fetchJson("/api/captures");
-      state.captures = data.captures || [];
-      const newCaptures = state.initialized && notify ? state.captures.filter(capture => !previousIds.has(capture.capture_id)) : [];
-      if (!state.currentCaptureId || !state.captures.some(capture => capture.capture_id === state.currentCaptureId)) state.currentCaptureId = state.captures[0]?.capture_id || null;
-      renderSelector();
-      if (newCaptures.length) notifyNewCaptures(newCaptures);
-      state.initialized = true;
-    }
 
-    function mergePhotos(newPhotos, preserveGallery) {
-      if (!preserveGallery) return newPhotos;
-      const seen = new Set(newPhotos.map(photo => photo.id));
-      return [...newPhotos, ...state.photos.filter(photo => !seen.has(photo.id))];
-    }
+      if (state.hasMorePhotos) {
 
-    async function loadCapture(captureId, { preserveGallery = false } = {}) {
-      if (!captureId) { clearDashboard(); return; }
-      const data = await fetchJson(`/api/captures/${encodeURIComponent(captureId)}?photo_limit=24&location_limit=300`);
-      state.currentCaptureId = captureId;
-      state.capture = data.capture;
-      state.locations = data.locations || [];
-      state.photos = mergePhotos(data.photos || [], preserveGallery);
-      state.hasMorePhotos = Boolean(data.has_more_photos);
-      if (!state.photos.some(photo => photo.id === state.currentPhotoId)) state.currentPhotoId = state.photos[0]?.id || null;
-      renderDashboard();
-    }
+        await loadMorePhotos();
 
-    function clearDashboard() {
-      state.capture = null; state.photos = []; state.locations = []; state.currentPhotoId = null;
-      renderDashboard();
-    }
 
-    function renderDashboard() {
-      const capture = state.capture;
-      document.getElementById("renameButton").disabled = !capture;
-      document.getElementById("deleteButton").disabled = !capture;
-      if (!capture) {
-        document.getElementById("captureName").textContent = "—";
-        document.getElementById("pageKey").textContent = "—";
-        document.getElementById("updatedAt").textContent = "—";
-        document.getElementById("locationCount").textContent = "0";
-        document.getElementById("photoCount").textContent = "0";
-        document.getElementById("coordinates").textContent = "—";
-        document.getElementById("mapsButton").style.display = "none";
-        renderPhotos(); renderMap(); return;
+        const updatedIndex =
+          selectedPhotoIndex();
+
+
+        if (
+          updatedIndex <
+          state.photos.length - 1
+        ) {
+
+          state.currentPhotoId =
+            state.photos[
+              updatedIndex + 1
+            ].id;
+
+
+          renderPhotos();
+
+        }
+
       }
-      document.getElementById("captureName").textContent = capture.display_name || "Sem nome";
-      document.getElementById("pageKey").textContent = capture.page_key;
-      document.getElementById("updatedAt").textContent = formatDate(capture.updated_at);
-      document.getElementById("locationCount").textContent = capture.location_total;
-      document.getElementById("photoCount").textContent = capture.photo_total;
-      document.getElementById("coordinates").textContent = capture.latitude == null ? "—" : `${Number(capture.latitude).toFixed(6)}, ${Number(capture.longitude).toFixed(6)}`;
-      const maps = document.getElementById("mapsButton");
-      maps.style.display = capture.maps_url ? "block" : "none";
-      maps.href = capture.maps_url || "#";
-      renderPhotos(); renderMap();
+
     }
+  );
 
-    function selectedPhotoIndex() { return state.photos.findIndex(photo => photo.id === state.currentPhotoId); }
 
-    function preloadAdjacentPhotos(index) {
-      [state.photos[index - 1], state.photos[index + 1]].filter(Boolean).forEach(photo => { const image = new Image(); image.src = photo.photo_url; });
-    }
+  document.getElementById(
+    "loadMorePhotos"
+  ).addEventListener(
+    "click",
+    loadMorePhotos
+  );
 
-    function renderPhotos() {
-      const photo = state.photos.find(item => item.id === state.currentPhotoId);
-      const currentIndex = selectedPhotoIndex();
-      if (!photo) { currentPhoto.style.display = "none"; noPhoto.style.display = "block"; document.getElementById("photoCounter").textContent = "Nenhuma foto"; document.getElementById("photoStatus").textContent = ""; }
-      else {
-        noPhoto.style.display = "none"; currentPhoto.style.display = "block";
-        if (currentPhoto.dataset.photoId !== String(photo.id)) { currentPhoto.src = photo.photo_url; currentPhoto.dataset.photoId = photo.id; }
-        document.getElementById("photoCounter").textContent = `Foto carregada ${currentIndex + 1} de ${state.capture.photo_total}`;
-        document.getElementById("photoStatus").textContent = formatDate(photo.created_at);
-        preloadAdjacentPhotos(currentIndex);
+
+  /*
+   * ============================================================
+   * RENOMEAR CAPTURA
+   * ============================================================
+   */
+
+
+  document.getElementById(
+    "renameButton"
+  ).addEventListener(
+    "click",
+    async () => {
+
+      if (!state.capture)
+        return;
+
+
+      const name =
+        window.prompt(
+          "Novo nome da captura (deixe vazio para remover):",
+          state.capture.display_name || ""
+        );
+
+
+      if (name === null)
+        return;
+
+
+      try {
+
+        const data =
+          await fetchJson(
+            `/api/captures/${encodeURIComponent(state.currentCaptureId)}`,
+            {
+              method:"PATCH",
+
+              headers:{
+                "Content-Type":
+                  "application/json"
+              },
+
+              body:JSON.stringify({
+                display_name:name
+              })
+
+            }
+          );
+
+
+        state.capture.display_name =
+          data.capture.display_name;
+
+
+        await loadCaptures();
+
+
+        renderDashboard();
+
+
+        showToast(
+          "Captura renomeada."
+        );
+
+      } catch (error) {
+
+        showToast(
+          error.message
+        );
+
       }
-      document.getElementById("previousPhoto").disabled = currentIndex <= 0;
-      document.getElementById("nextPhoto").disabled = !photo || (currentIndex >= state.photos.length - 1 && !state.hasMorePhotos);
-      document.getElementById("historyDescription").textContent = state.capture ? `${state.photos.length} de ${state.capture.photo_total} carregadas` : "";
-      gallery.replaceChildren();
-      if (!state.photos.length) gallery.innerHTML = '<div class="empty">Nenhuma foto nesta captura.</div>';
-      else {
-        const fragment = document.createDocumentFragment();
-        state.photos.forEach(photoItem => {
-          const item = document.createElement("button"); item.type = "button"; item.className = `thumb${photoItem.id === state.currentPhotoId ? " selected" : ""}`;
-          const image = document.createElement("img"); image.src = photoItem.photo_url; image.alt = `Foto de ${formatDate(photoItem.created_at)}`; image.loading = "lazy"; image.decoding = "async";
-          const label = document.createElement("small"); label.textContent = formatDate(photoItem.created_at);
-          item.append(image, label); item.addEventListener("click", () => { state.currentPhotoId = photoItem.id; renderPhotos(); }); fragment.append(item);
-        });
-        gallery.append(fragment);
+
+    }
+  );
+
+
+  /*
+   * ============================================================
+   * APAGAR CAPTURA
+   * ============================================================
+   */
+
+
+  document.getElementById(
+    "deleteButton"
+  ).addEventListener(
+    "click",
+    async () => {
+
+      if (
+        !state.capture ||
+        !window.confirm(
+          "Apagar esta captura, suas fotos e posições? Esta ação não pode ser desfeita."
+        )
+      ) return;
+
+
+      try {
+
+        await fetchJson(
+          `/api/captures/${encodeURIComponent(state.currentCaptureId)}`,
+          {
+            method:"DELETE"
+          }
+        );
+
+
+        removeNotification(
+          state.currentCaptureId
+        );
+
+
+        state.currentCaptureId =
+          null;
+
+
+        clearDashboard();
+
+
+        await loadCaptures();
+
+
+        await loadCapture(
+          state.currentCaptureId
+        );
+
+
+        showToast(
+          "Captura apagada."
+        );
+
+      } catch (error) {
+
+        showToast(
+          error.message
+        );
+
       }
-      document.getElementById("loadMorePhotos").style.display = state.hasMorePhotos ? "block" : "none";
+
+    }
+  );
+
+
+  /*
+   * ============================================================
+   * NOTIFICAÇÕES DO NAVEGADOR
+   * ============================================================
+   */
+
+
+  document.getElementById(
+    "browserNotifications"
+  ).addEventListener(
+    "click",
+    async () => {
+
+      if (!("Notification" in window)) {
+
+        return showToast(
+          "Este navegador não oferece alertas do sistema."
+        );
+
+      }
+
+
+      const result =
+        await Notification.requestPermission();
+
+
+      showToast(
+        result === "granted"
+          ? "Alertas do navegador ativados."
+          : "Alertas do navegador não foram autorizados."
+      );
+
+    }
+  );
+
+
+  /*
+   * ============================================================
+   * ATUALIZAÇÃO AUTOMÁTICA
+   * ============================================================
+   */
+
+
+  async function refreshDashboard() {
+
+    if (state.refreshInProgress)
+      return;
+
+
+    state.refreshInProgress = true;
+
+
+    try {
+
+      await loadCaptures({
+        notify:true
+      });
+
+
+      if (state.currentCaptureId) {
+
+        await loadCapture(
+          state.currentCaptureId,
+          {
+            preserveGallery:true
+          }
+        );
+
+      }
+
+    } catch (error) {
+
+      console.error(
+        error
+      );
+
+    } finally {
+
+      state.refreshInProgress =
+        false;
+
     }
 
-    async function loadMorePhotos() {
-      const lastPhoto = state.photos[state.photos.length - 1];
-      if (!state.currentCaptureId || !lastPhoto || !state.hasMorePhotos) return;
-      const button = document.getElementById("loadMorePhotos"); button.disabled = true; button.textContent = "Carregando…";
-      try {
-        const data = await fetchJson(`/api/captures/${encodeURIComponent(state.currentCaptureId)}/photos?before_id=${encodeURIComponent(lastPhoto.id)}&limit=24`);
-        const knownIds = new Set(state.photos.map(photo => photo.id));
-        state.photos.push(...(data.photos || []).filter(photo => !knownIds.has(photo.id)));
-        state.hasMorePhotos = Boolean(data.has_more_photos); renderPhotos();
-      } catch (error) { showToast(error.message); }
-      finally { button.disabled = false; button.textContent = "Carregar mais fotos"; }
+  }
+
+
+  /*
+   * ============================================================
+   * ADMINISTRAÇÃO DE USUÁRIOS
+   * ============================================================
+   */
+
+
+{% if current_user.is_admin %}
+
+
+  async function loadUsers() {
+
+    try {
+
+      const data =
+        await fetchJson(
+          "/api/users"
+        );
+
+
+      const rows =
+        document.getElementById(
+          "userRows"
+        );
+
+
+      rows.replaceChildren();
+
+
+      if (!data.users.length) {
+
+        rows.innerHTML =
+          '<tr><td colspan="5">Nenhum usuário adicional.</td></tr>';
+
+      } else {
+
+        data.users.forEach(
+          user => {
+
+            const row =
+              document.createElement(
+                "tr"
+              );
+
+
+            [
+              user.username,
+              user.page_key,
+              user.active
+                ? "Ativo"
+                : "Inativo",
+              formatDate(
+                user.created_at
+              )
+            ]
+            .forEach(
+              value => {
+
+                const cell =
+                  document.createElement(
+                    "td"
+                  );
+
+
+                cell.textContent =
+                  value;
+
+
+                row.append(
+                  cell
+                );
+
+              }
+            );
+
+
+            const action =
+              document.createElement(
+                "td"
+              );
+
+
+            const remove =
+              document.createElement(
+                "button"
+              );
+
+
+            remove.type =
+              "button";
+
+
+            remove.className =
+              "danger";
+
+
+            remove.textContent =
+              "Apagar";
+
+
+            remove.addEventListener(
+              "click",
+              () =>
+                deleteUser(user)
+            );
+
+
+            action.append(
+              remove
+            );
+
+
+            row.append(
+              action
+            );
+
+
+            rows.append(
+              row
+            );
+
+          }
+        );
+
+      }
+
+    } catch (error) {
+
+      document.getElementById(
+        "userRows"
+      ).innerHTML =
+        '<tr><td colspan="5">Não foi possível carregar usuários.</td></tr>';
+
     }
 
-    function renderMap() {
-      mapLayers.forEach(layer => map.removeLayer(layer)); mapLayers = [];
-      if (!state.locations.length) return;
-      const points = state.locations.map(location => [Number(location.latitude), Number(location.longitude)]);
-      if (points.length > 1) { const line = L.polyline(points, { color: "#2563eb", weight: 4 }).addTo(map); mapLayers.push(line); }
-      state.locations.forEach((location, index) => { const marker = L.circleMarker([Number(location.latitude), Number(location.longitude)], { radius: 4, color: "#2563eb" }).bindPopup(`Posição ${index + 1}<br>${formatDate(location.created_at)}`).addTo(map); mapLayers.push(marker); });
-      const current = L.marker(points[points.length - 1]).bindPopup("Última posição").addTo(map); mapLayers.push(current);
-      if (points.length === 1) map.setView(points[0], 16); else map.fitBounds(points, { padding:[28,28], maxZoom:16 });
+  }
+
+
+  async function deleteUser(user) {
+
+    if (
+      !window.confirm(
+        `Apagar o usuário ${user.username}? Ele perderá acesso imediatamente, mas as capturas serão preservadas.`
+      )
+    ) return;
+
+
+    const message =
+      document.getElementById(
+        "userFormMessage"
+      );
+
+
+    try {
+
+      await fetchJson(
+        `/api/users/${encodeURIComponent(user.id)}`,
+        {
+          method:"DELETE"
+        }
+      );
+
+
+      message.textContent =
+        `Usuário ${user.username} apagado.`;
+
+
+      await loadUsers();
+
+    } catch (error) {
+
+      message.textContent =
+        error.message;
+
     }
 
-    captureSelect.addEventListener("change", async () => { state.currentCaptureId = captureSelect.value || null; state.photos = []; state.currentPhotoId = null; await loadCapture(state.currentCaptureId); });
-    document.getElementById("previousPhoto").addEventListener("click", () => { const index = selectedPhotoIndex(); if (index > 0) { state.currentPhotoId = state.photos[index - 1].id; renderPhotos(); } });
-    document.getElementById("nextPhoto").addEventListener("click", async () => { const index = selectedPhotoIndex(); if (index < state.photos.length - 1) { state.currentPhotoId = state.photos[index + 1].id; renderPhotos(); return; } if (state.hasMorePhotos) { await loadMorePhotos(); const updatedIndex = selectedPhotoIndex(); if (updatedIndex < state.photos.length - 1) { state.currentPhotoId = state.photos[updatedIndex + 1].id; renderPhotos(); } } });
-    document.getElementById("loadMorePhotos").addEventListener("click", loadMorePhotos);
+  }
 
-    document.getElementById("renameButton").addEventListener("click", async () => {
-      if (!state.capture) return;
-      const name = window.prompt("Novo nome da captura (deixe vazio para remover):", state.capture.display_name || "");
-      if (name === null) return;
+
+  /*
+   * CORREÇÃO DO ERRO:
+   *
+   * Antes:
+   *
+   * event.currentTarget.reset()
+   *
+   * Depois do await o currentTarget
+   * pode ser null.
+   *
+   * Agora guardamos o formulário
+   * antes do await.
+   */
+
+
+  document.getElementById(
+    "createUserForm"
+  ).addEventListener(
+    "submit",
+    async event => {
+
+      event.preventDefault();
+
+
+      /*
+       * IMPORTANTE:
+       * guardar a referência antes do await.
+       */
+
+      const form =
+        event.currentTarget;
+
+
+      const message =
+        document.getElementById(
+          "userFormMessage"
+        );
+
+
+      message.textContent =
+        "Criando…";
+
+
       try {
-        const data = await fetchJson(`/api/captures/${encodeURIComponent(state.currentCaptureId)}`, { method:"PATCH", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ display_name:name }) });
-        state.capture.display_name = data.capture.display_name; await loadCaptures(); renderDashboard(); showToast("Captura renomeada.");
-      } catch (error) { showToast(error.message); }
-    });
 
-    document.getElementById("deleteButton").addEventListener("click", async () => {
-      if (!state.capture || !window.confirm("Apagar esta captura, suas fotos e posições? Esta ação não pode ser desfeita.")) return;
-      try {
-        await fetchJson(`/api/captures/${encodeURIComponent(state.currentCaptureId)}`, { method:"DELETE" });
-        state.currentCaptureId = null; clearDashboard(); await loadCaptures(); await loadCapture(state.currentCaptureId); showToast("Captura apagada.");
-      } catch (error) { showToast(error.message); }
-    });
+        const user =
+          await fetchJson(
+            "/api/users",
+            {
+              method:"POST",
 
-    document.getElementById("browserNotifications").addEventListener("click", async () => {
-      if (!("Notification" in window)) return showToast("Este navegador não oferece alertas do sistema.");
-      const result = await Notification.requestPermission();
-      showToast(result === "granted" ? "Alertas do navegador ativados." : "Alertas do navegador não foram autorizados.");
-    });
-    notificationBadge.addEventListener("click", () => { state.pendingNotifications = 0; updateNotificationBadge(); });
+              headers:{
+                "Content-Type":
+                  "application/json"
+              },
 
-    async function refreshDashboard() {
-      if (state.refreshInProgress) return;
-      state.refreshInProgress = true;
-      try { await loadCaptures({ notify:true }); if (state.currentCaptureId) await loadCapture(state.currentCaptureId, { preserveGallery:true }); }
-      catch (error) { console.error(error); }
-      finally { state.refreshInProgress = false; }
-    }
+              body:JSON.stringify({
 
-    {% if current_user.is_admin %}
-    async function loadUsers() {
-      try {
-        const data = await fetchJson("/api/users"); const rows = document.getElementById("userRows"); rows.replaceChildren();
-        if (!data.users.length) rows.innerHTML = '<tr><td colspan="5">Nenhum usuário adicional.</td></tr>';
-        else data.users.forEach(user => {
-          const row = document.createElement("tr");
-          [user.username, user.page_key, user.active ? "Ativo" : "Inativo", formatDate(user.created_at)].forEach(value => { const cell = document.createElement("td"); cell.textContent = value; row.append(cell); });
-          const action = document.createElement("td");
-          const remove = document.createElement("button");
-          remove.type = "button"; remove.className = "danger"; remove.textContent = "Apagar";
-          remove.addEventListener("click", () => deleteUser(user));
-          action.append(remove); row.append(action); rows.append(row);
-        });
-      } catch (error) { document.getElementById("userRows").innerHTML = '<tr><td colspan="5">Não foi possível carregar usuários.</td></tr>'; }
-    }
-    async function deleteUser(user) {
-      if (!window.confirm(`Apagar o usuário ${user.username}? Ele perderá acesso imediatamente, mas as capturas serão preservadas.`)) return;
-      const message = document.getElementById("userFormMessage");
-      try {
-        await fetchJson(`/api/users/${encodeURIComponent(user.id)}`, { method:"DELETE" });
-        message.textContent = `Usuário ${user.username} apagado.`;
+                username:
+                  document.getElementById(
+                    "newUsername"
+                  ).value,
+
+                password:
+                  document.getElementById(
+                    "newPassword"
+                  ).value,
+
+                page_key:
+                  document.getElementById(
+                    "newPageKey"
+                  ).value
+
+              })
+
+            }
+          );
+
+
+        /*
+         * Aqui usamos form.reset()
+         * e não event.currentTarget.reset().
+         */
+
+        form.reset();
+
+
+        message.textContent =
+          `Usuário ${user.user.username} criado para /${user.user.page_key}.html.`;
+
+
         await loadUsers();
-      } catch (error) { message.textContent = error.message; }
-    }
-    document.getElementById("createUserForm").addEventListener("submit", async event => {
-      event.preventDefault(); const message = document.getElementById("userFormMessage"); message.textContent = "Criando…";
-      try {
-        const user = await fetchJson("/api/users", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ username:document.getElementById("newUsername").value, password:document.getElementById("newPassword").value, page_key:document.getElementById("newPageKey").value }) });
-        event.currentTarget.reset(); message.textContent = `Usuário ${user.user.username} criado para /${user.user.page_key}.html.`; await loadUsers();
-      } catch (error) { message.textContent = error.message; }
-    });
-    document.getElementById("toggleAdminPanel").addEventListener("click", async event => {
-      const panel = document.getElementById("adminPanel");
-      const willOpen = panel.hidden;
-      panel.hidden = !willOpen;
-      event.currentTarget.setAttribute("aria-expanded", String(willOpen));
-      event.currentTarget.textContent = willOpen ? "Ocultar usuários" : "Gerenciar usuários";
-      if (willOpen) await loadUsers();
-    });
-    {% endif %}
 
-    async function initialize() {
-      try { await loadCaptures(); await loadCapture(state.currentCaptureId); }
-      catch (error) { showToast(error.message); }
-      setInterval(refreshDashboard, 8000);
+      } catch (error) {
+
+        message.textContent =
+          error.message;
+
+      }
+
     }
-    initialize();
-  </script>
+  );
+
+
+  document.getElementById(
+    "toggleAdminPanel"
+  ).addEventListener(
+    "click",
+    async event => {
+
+      const panel =
+        document.getElementById(
+          "adminPanel"
+        );
+
+
+      const willOpen =
+        panel.hidden;
+
+
+      panel.hidden =
+        !willOpen;
+
+
+      event.currentTarget.setAttribute(
+        "aria-expanded",
+        String(willOpen)
+      );
+
+
+      event.currentTarget.textContent =
+        willOpen
+          ? "Ocultar usuários"
+          : "Gerenciar usuários";
+
+
+      if (willOpen) {
+
+        await loadUsers();
+
+      }
+
+    }
+  );
+
+
+{% endif %}
+
+
+  /*
+   * ============================================================
+   * INICIALIZAÇÃO
+   * ============================================================
+   */
+
+
+  async function initialize() {
+
+    try {
+
+      await loadCaptures();
+
+      await loadCapture(
+        state.currentCaptureId
+      );
+
+    } catch (error) {
+
+      showToast(
+        error.message
+      );
+
+    }
+
+
+    /*
+     * Verifica novas capturas
+     * a cada 8 segundos.
+     */
+
+    setInterval(
+      refreshDashboard,
+      8000
+    );
+
+  }
+
+
+  initialize();
+
+</script>
 
 </body>
 </html>
