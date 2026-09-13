@@ -1,4 +1,5 @@
 <!doctype html>
+
 <html lang="pt-BR">
 <head>
   <meta charset="utf-8">
@@ -17,6 +18,7 @@
       --primary:#2563eb;
       --danger:#dc2626;
       --success:#16a34a;
+      --warning:#f59e0b;
     }
 
     * {
@@ -134,6 +136,16 @@
       color:white;
     }
 
+    button.success {
+      background:#dcfce7;
+      color:#166534;
+    }
+
+    button.following {
+      background:#16a34a;
+      color:white;
+    }
+
     button.danger {
       background:#fee2e2;
       color:#991b1b;
@@ -142,6 +154,45 @@
     button:disabled {
       opacity:.55;
       cursor:not-allowed;
+    }
+
+    /* BARRA DE CONTROLES DO MAPA */
+
+    .map-controls {
+      display:flex;
+      align-items:center;
+      gap:8px;
+      flex-wrap:wrap;
+      margin-top:12px;
+    }
+
+    .follow-status {
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      padding:8px 11px;
+      border-radius:8px;
+      background:#f1f5f9;
+      color:var(--muted);
+      font-size:12px;
+      font-weight:700;
+    }
+
+    .follow-status.active {
+      background:#dcfce7;
+      color:#166534;
+    }
+
+    .follow-dot {
+      width:8px;
+      height:8px;
+      border-radius:50%;
+      background:#94a3b8;
+    }
+
+    .follow-status.active .follow-dot {
+      background:#16a34a;
+      box-shadow:0 0 0 4px rgba(22,163,74,.12);
     }
 
     /* NOTIFICAÇÕES */
@@ -194,7 +245,7 @@
       position:absolute;
       right:0;
       top:calc(100% + 9px);
-      width:360px;
+      width:380px;
       max-width:calc(100vw - 30px);
       background:white;
       border:1px solid var(--border);
@@ -248,6 +299,12 @@
       display:flex;
       align-items:center;
       gap:10px;
+      cursor:pointer;
+      transition:background .15s;
+    }
+
+    .notification-item:hover {
+      background:#f8fafc;
     }
 
     .notification-item:last-child {
@@ -284,19 +341,13 @@
       font-size:11px;
     }
 
-    /* CAPTURA NOVA NO SELECT */
-
-    .new-capture-select {
-      border-color:#ef4444 !important;
-    }
-
-    /* TOAST */
+    /* TOAST NOVA CAPTURA */
 
     .new-capture-toast {
       position:fixed;
       right:20px;
       bottom:20px;
-      width:360px;
+      width:370px;
       max-width:calc(100vw - 30px);
       background:white;
       border:1px solid var(--border);
@@ -331,6 +382,13 @@
       color:white;
       width:100%;
       font-size:12px;
+    }
+
+    /* SELECT COM NOVAS */
+
+    .new-capture-select {
+      border-color:#ef4444 !important;
+      box-shadow:0 0 0 2px rgba(239,68,68,.08);
     }
 
     /* CONTEÚDO */
@@ -566,6 +624,7 @@
     }
 
     @media (max-width:900px) {
+
       .grid,
       .admin-grid {
         grid-template-columns:1fr;
@@ -574,9 +633,11 @@
       #map {
         height:420px;
       }
+
     }
 
     @media (max-width:560px) {
+
       header {
         padding:12px 14px;
       }
@@ -619,295 +680,540 @@
         right:0;
         width:100%;
       }
+
+      .map-controls {
+        display:grid;
+        grid-template-columns:1fr 1fr;
+      }
+
+      .follow-status {
+        grid-column:1 / -1;
+        justify-content:center;
+      }
+
     }
+
   </style>
+
 </head>
 
 <body>
 
 <header>
-  <div class="brand">Painel de capturas</div>
+
+  <div class="brand">
+    Painel de capturas
+  </div>
 
   <div class="account">
-    <span id="userName"></span>
-    <a class="logout" href="/logout">Sair</a>
-  </div>
-</header>
 
+```
+<span id="userName"></span>
+
+<a
+  class="logout"
+  href="/logout"
+>
+  Sair
+</a>
+```
+
+  </div>
+
+</header>
 
 <main class="shell">
 
+  <!-- =========================================================
+       BARRA SUPERIOR
+       ========================================================= -->
+
   <section class="topbar">
 
-    <div class="selector">
+```
+<div class="selector">
 
-      <label for="captureSelect">Captura</label>
-
-      <select id="captureSelect">
-        <option value="">Carregando…</option>
-      </select>
-
-      <button id="renameButton" type="button">
-        Renomear
-      </button>
-
-      <button id="deleteButton" type="button" class="danger">
-        Apagar
-      </button>
-
-    </div>
+  <label for="captureSelect">
+    Captura
+  </label>
 
 
-    <div class="notification">
+  <select id="captureSelect">
 
-      <span id="scopeText"></span>
+    <option value="">
+      Carregando…
+    </option>
 
-      <button id="browserNotifications" type="button">
-        Ativar alertas
-      </button>
+  </select>
 
 
-      <div class="notification-wrapper">
+  <button
+    id="renameButton"
+    type="button"
+  >
+    Renomear
+  </button>
+
+
+  <button
+    id="deleteButton"
+    type="button"
+    class="danger"
+  >
+    Apagar
+  </button>
+
+
+  <button
+    id="refreshButton"
+    type="button"
+    class="primary"
+    title="Atualizar dados agora"
+  >
+    🔄 Atualizar
+  </button>
+
+</div>
+
+
+<!-- NOTIFICAÇÕES -->
+
+<div class="notification">
+
+  <span id="scopeText"></span>
+
+
+  <button
+    id="browserNotifications"
+    type="button"
+  >
+    Ativar alertas
+  </button>
+
+
+  <div class="notification-wrapper">
+
+
+    <button
+      id="notificationButton"
+      class="notification-button"
+      type="button"
+      aria-expanded="false"
+      aria-controls="notificationMenu"
+    >
+
+      <span class="notification-icon">
+        🔔
+      </span>
+
+      <span>
+        Novas
+      </span>
+
+      <span
+        aria-label="Novas capturas"
+        class="badge"
+        id="notificationBadge"
+      >
+        0
+      </span>
+
+    </button>
+
+
+    <div
+      id="notificationMenu"
+      class="notification-menu"
+    >
+
+      <div class="notification-header">
+
+        <strong>
+          Novas capturas
+        </strong>
+
 
         <button
-          id="notificationButton"
-          class="notification-button"
+          id="clearNotifications"
           type="button"
-          aria-expanded="false"
-          aria-controls="notificationMenu"
+          class="notification-clear"
         >
-
-          <span class="notification-icon">🔔</span>
-
-          <span>Novas</span>
-
-          <span
-            aria-label="Novas capturas"
-            class="badge"
-            id="notificationBadge"
-          >
-            0
-          </span>
-
+          Limpar
         </button>
 
-
-        <div
-          id="notificationMenu"
-          class="notification-menu"
-        >
-
-          <div class="notification-header">
-
-            <strong>Novas capturas</strong>
-
-            <button
-              id="clearNotifications"
-              type="button"
-              class="notification-clear"
-            >
-              Limpar
-            </button>
-
-          </div>
+      </div>
 
 
-          <div
-            id="notificationList"
-            class="notification-list"
-          >
+      <div
+        id="notificationList"
+        class="notification-list"
+      >
 
-            <div class="notification-empty">
-              Nenhuma captura nova.
-            </div>
-
-          </div>
-
+        <div class="notification-empty">
+          Nenhuma captura nova.
         </div>
 
       </div>
 
     </div>
 
+  </div>
+
+</div>
+```
+
   </section>
 
+  <!-- =========================================================
+       CONTEÚDO PRINCIPAL
+       ========================================================= -->
 
   <section class="grid">
 
-    <div class="side">
+```
+<!-- =======================================================
+     COLUNA ESQUERDA
+     ======================================================= -->
 
-      <article class="card">
-
-        <div class="card-title">
-          Foto
-          <span id="photoStatus" class="scope"></span>
-        </div>
-
-        <div class="photo-frame">
-
-          <img
-            id="currentPhoto"
-            alt="Foto capturada"
-          >
-
-          <div id="noPhoto" class="empty">
-            Nenhuma foto nesta captura.
-          </div>
-
-        </div>
-
-        <div class="body">
-
-          <div class="photo-controls">
-
-            <button id="previousPhoto" type="button">
-              ← Anterior
-            </button>
-
-            <button id="nextPhoto" type="button">
-              Próxima →
-            </button>
-
-          </div>
-
-          <div id="photoCounter" class="counter">
-            Nenhuma foto
-          </div>
-
-        </div>
-
-      </article>
+<div class="side">
 
 
-      <article class="card">
+  <!-- FOTO -->
 
-        <div class="card-title">
-          Informações
-        </div>
+  <article class="card">
 
-        <div class="body">
+    <div class="card-title">
 
-          <div class="facts">
+      Foto
 
-            <div class="fact">
-              <span>Nome</span>
-              <b id="captureName">—</b>
-            </div>
-
-            <div class="fact">
-              <span>Página</span>
-              <b id="pageKey">—</b>
-            </div>
-
-            <div class="fact">
-              <span>Última posição</span>
-              <b id="updatedAt">—</b>
-            </div>
-
-            <div class="fact">
-              <span>Posições</span>
-              <b id="locationCount">0</b>
-            </div>
-
-            <div class="fact">
-              <span>Fotos</span>
-              <b id="photoCount">0</b>
-            </div>
-
-            <div class="fact">
-              <span>Coordenadas</span>
-              <b id="coordinates">—</b>
-            </div>
-
-          </div>
-
-
-          <a
-            id="mapsButton"
-            class="maps"
-            target="_blank"
-            rel="noopener"
-            style="display:none"
-          >
-            Abrir no mapa
-          </a>
-
-        </div>
-
-      </article>
+      <span
+        id="photoStatus"
+        class="scope"
+      ></span>
 
     </div>
 
 
-    <article class="card">
+    <div class="photo-frame">
 
-      <div class="card-title">
+      <img
+        id="currentPhoto"
+        alt="Foto capturada"
+      >
 
-        Localização recente
 
-        <span class="scope">
-          máximo de 300 pontos
+      <div
+        id="noPhoto"
+        class="empty"
+      >
+        Nenhuma foto nesta captura.
+      </div>
+
+    </div>
+
+
+    <div class="body">
+
+      <div class="photo-controls">
+
+        <button
+          id="previousPhoto"
+          type="button"
+        >
+          ← Anterior
+        </button>
+
+
+        <button
+          id="nextPhoto"
+          type="button"
+        >
+          Próxima →
+        </button>
+
+      </div>
+
+
+      <div
+        id="photoCounter"
+        class="counter"
+      >
+        Nenhuma foto
+      </div>
+
+    </div>
+
+  </article>
+
+
+  <!-- INFORMAÇÕES -->
+
+  <article class="card">
+
+    <div class="card-title">
+      Informações
+    </div>
+
+
+    <div class="body">
+
+
+      <div class="facts">
+
+
+        <div class="fact">
+
+          <span>
+            Nome
+          </span>
+
+          <b id="captureName">
+            —
+          </b>
+
+        </div>
+
+
+        <div class="fact">
+
+          <span>
+            Página
+          </span>
+
+          <b id="pageKey">
+            —
+          </b>
+
+        </div>
+
+
+        <div class="fact">
+
+          <span>
+            Última posição
+          </span>
+
+          <b id="updatedAt">
+            —
+          </b>
+
+        </div>
+
+
+        <div class="fact">
+
+          <span>
+            Posições
+          </span>
+
+          <b id="locationCount">
+            0
+          </b>
+
+        </div>
+
+
+        <div class="fact">
+
+          <span>
+            Fotos
+          </span>
+
+          <b id="photoCount">
+            0
+          </b>
+
+        </div>
+
+
+        <div class="fact">
+
+          <span>
+            Coordenadas
+          </span>
+
+          <b id="coordinates">
+            —
+          </b>
+
+        </div>
+
+
+      </div>
+
+
+      <a
+        id="mapsButton"
+        class="maps"
+        target="_blank"
+        rel="noopener"
+        style="display:none"
+      >
+        Abrir no mapa
+      </a>
+
+
+    </div>
+
+  </article>
+
+
+</div>
+
+
+<!-- =======================================================
+     MAPA
+     ======================================================= -->
+
+<article class="card">
+
+
+  <div class="card-title">
+
+    Localização recente
+
+    <span class="scope">
+      máximo de 300 pontos
+    </span>
+
+  </div>
+
+
+  <div id="map"></div>
+
+
+  <!-- CONTROLES DO MAPA -->
+
+  <div class="body">
+
+
+    <div class="map-controls">
+
+
+      <button
+        id="followButton"
+        type="button"
+        class="success"
+      >
+        ▶ Seguir
+      </button>
+
+
+      <button
+        id="stopFollowButton"
+        type="button"
+        class="danger"
+        disabled
+      >
+        ⏹ Parar de seguir
+      </button>
+
+
+      <button
+        id="centerMapButton"
+        type="button"
+      >
+        ⌖ Última posição
+      </button>
+
+
+      <div
+        id="followStatus"
+        class="follow-status"
+      >
+
+        <span class="follow-dot"></span>
+
+        <span id="followStatusText">
+          Mapa livre
         </span>
 
       </div>
 
-      <div id="map"></div>
-
-    </article>
-
-  </section>
-
-
-  <section class="card admin" id="historyCard">
-
-    <div class="card-title">
-
-      Fotos recentes
-
-      <span id="historyDescription" class="scope"></span>
 
     </div>
 
-    <div class="body">
-
-      <div id="gallery" class="gallery">
-
-        <div class="empty">
-          Selecione uma captura.
-        </div>
-
-      </div>
-
-      <button
-        id="loadMorePhotos"
-        type="button"
-        class="load-more"
-        style="display:none"
-      >
-        Carregar mais fotos
-      </button>
-
-    </div>
-
-  </section>
-
-
-{% if current_user.is_admin %}
-
-  <div class="admin-toggle">
-
-    <button
-      id="toggleAdminPanel"
-      type="button"
-      class="primary"
-      aria-controls="adminPanel"
-      aria-expanded="false"
-    >
-      Gerenciar usuários
-    </button>
 
   </div>
 
+</article>
+```
+
+  </section>
+
+  <!-- =========================================================
+       GALERIA
+       ========================================================= -->
+
+  <section
+    class="card admin"
+    id="historyCard"
+  >
+
+```
+<div class="card-title">
+
+  Fotos recentes
+
+  <span
+    id="historyDescription"
+    class="scope"
+  ></span>
+
+</div>
+
+
+<div class="body">
+
+
+  <div
+    id="gallery"
+    class="gallery"
+  >
+
+    <div class="empty">
+      Selecione uma captura.
+    </div>
+
+  </div>
+
+
+  <button
+    id="loadMorePhotos"
+    type="button"
+    class="load-more"
+    style="display:none"
+  >
+    Carregar mais fotos
+  </button>
+
+
+</div>
+```
+
+  </section>
+
+{% if current_user.is_admin %}
+
+  <!-- =========================================================
+       ADMINISTRAÇÃO
+       ========================================================= -->
+
+  <div class="admin-toggle">
+
+```
+<button
+  id="toggleAdminPanel"
+  type="button"
+  class="primary"
+  aria-controls="adminPanel"
+  aria-expanded="false"
+>
+  Gerenciar usuários
+</button>
+```
+
+  </div>
 
   <section
     class="card admin"
@@ -915,129 +1221,164 @@
     hidden
   >
 
-    <div class="card-title">
+```
+<div class="card-title">
 
-      Usuários do painel
+  Usuários do painel
 
-      <span class="scope">
-        Cada usuário visualiza apenas a página associada.
-      </span>
+  <span class="scope">
+    Cada usuário visualiza apenas a página associada.
+  </span>
 
-    </div>
-
-
-    <div class="body admin-grid">
-
-      <form
-        id="createUserForm"
-        class="form-grid"
-      >
-
-        <label for="newUsername">
-          Usuário
-        </label>
-
-        <input
-          id="newUsername"
-          required
-          minlength="3"
-          maxlength="32"
-          autocomplete="username"
-          placeholder="usuario2"
-        >
+</div>
 
 
-        <label for="newPassword">
-          Senha inicial
-        </label>
-
-        <input
-          id="newPassword"
-          type="password"
-          required
-          minlength="8"
-          autocomplete="new-password"
-          placeholder="Mínimo de 8 caracteres"
-        >
+<div class="body admin-grid">
 
 
-        <label for="newPageKey">
-          Página associada
-        </label>
-
-        <input
-          id="newPageKey"
-          required
-          maxlength="64"
-          pattern="[a-z0-9][a-z0-9_-]*"
-          placeholder="index2"
-        >
+  <form
+    id="createUserForm"
+    class="form-grid"
+  >
 
 
-        <span class="scope">
-          Ex.: <strong>index2</strong> libera somente as capturas de
-          <strong>/index2.html</strong>.
-        </span>
+    <label for="newUsername">
+      Usuário
+    </label>
 
 
-        <button
-          type="submit"
-          class="primary"
-        >
-          Adicionar usuário
-        </button>
+    <input
+      id="newUsername"
+      required
+      minlength="3"
+      maxlength="32"
+      autocomplete="username"
+      placeholder="usuario2"
+    >
 
 
-        <div
-          id="userFormMessage"
-          class="form-message"
-          role="status"
-        ></div>
-
-      </form>
+    <label for="newPassword">
+      Senha inicial
+    </label>
 
 
-      <div class="user-list">
+    <input
+      id="newPassword"
+      type="password"
+      required
+      minlength="8"
+      autocomplete="new-password"
+      placeholder="Mínimo de 8 caracteres"
+    >
 
-        <table>
 
-          <thead>
+    <label for="newPageKey">
+      Página associada
+    </label>
 
-            <tr>
-              <th>Usuário</th>
-              <th>Página</th>
-              <th>Status</th>
-              <th>Criado em</th>
-              <th>Ação</th>
-            </tr>
 
-          </thead>
+    <input
+      id="newPageKey"
+      required
+      maxlength="64"
+      pattern="[a-z0-9][a-z0-9_-]*"
+      placeholder="index2"
+    >
 
-          <tbody id="userRows">
 
-            <tr>
-              <td colspan="5">
-                Carregando…
-              </td>
-            </tr>
+    <span class="scope">
 
-          </tbody>
+      Ex.: <strong>index2</strong>
+      libera somente as capturas de
+      <strong>/index2.html</strong>.
 
-        </table>
+    </span>
 
-      </div>
 
-    </div>
+    <button
+      type="submit"
+      class="primary"
+    >
+      Adicionar usuário
+    </button>
+
+
+    <div
+      id="userFormMessage"
+      class="form-message"
+      role="status"
+    ></div>
+
+
+  </form>
+
+
+  <div class="user-list">
+
+
+    <table>
+
+
+      <thead>
+
+        <tr>
+
+          <th>
+            Usuário
+          </th>
+
+          <th>
+            Página
+          </th>
+
+          <th>
+            Status
+          </th>
+
+          <th>
+            Criado em
+          </th>
+
+          <th>
+            Ação
+          </th>
+
+        </tr>
+
+      </thead>
+
+
+      <tbody id="userRows">
+
+        <tr>
+
+          <td colspan="5">
+            Carregando…
+          </td>
+
+        </tr>
+
+      </tbody>
+
+
+    </table>
+
+
+  </div>
+
+
+</div>
+```
 
   </section>
 
 {% endif %}
 
-
 </main>
 
-
-<!-- TOAST DE NOVA CAPTURA -->
+<!-- =========================================================
+     TOAST DE NOVA CAPTURA
+     ========================================================= -->
 
 <div
   id="newCaptureToast"
@@ -1059,16 +1400,20 @@
   >
   </div>
 
-  <button
-    id="newCaptureToastButton"
-    class="new-capture-toast-button"
-    type="button"
-  >
-    Abrir captura
+<button
+id="newCaptureToastButton"
+class="new-capture-toast-button"
+type="button"
+
+>
+
+```
+Abrir captura
+```
+
   </button>
 
 </div>
-
 
 <div
   id="toast"
@@ -1077,15 +1422,24 @@
   aria-live="polite"
 ></div>
 
-
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
 
 <script>
 
-  const currentUser = {{ current_user|tojson }};
 
-  const isAdmin = Boolean(currentUser.is_admin);
+  /* ==========================================================
+     ESTADO
+     ========================================================== */
+
+
+  const currentUser =
+    {{ current_user|tojson }};
+
+
+  const isAdmin =
+    Boolean(
+      currentUser.is_admin
+    );
 
 
   const state = {
@@ -1108,40 +1462,110 @@
 
     pendingNotifications: [],
 
-    refreshInProgress: false
+    refreshInProgress: false,
+
+    /*
+     * Controla se o mapa deve acompanhar
+     * automaticamente a última posição.
+     */
+
+    following: false,
+
+    /*
+     * Guarda o último conjunto de pontos
+     * desenhado no mapa.
+     */
+
+    lastLocationSignature: ""
 
   };
 
 
+  /* ==========================================================
+     ELEMENTOS
+     ========================================================== */
+
+
   const captureSelect =
-    document.getElementById("captureSelect");
+    document.getElementById(
+      "captureSelect"
+    );
+
 
   const currentPhoto =
-    document.getElementById("currentPhoto");
+    document.getElementById(
+      "currentPhoto"
+    );
+
 
   const noPhoto =
-    document.getElementById("noPhoto");
+    document.getElementById(
+      "noPhoto"
+    );
+
 
   const gallery =
-    document.getElementById("gallery");
+    document.getElementById(
+      "gallery"
+    );
+
 
   const notificationBadge =
-    document.getElementById("notificationBadge");
+    document.getElementById(
+      "notificationBadge"
+    );
+
 
   const notificationButton =
-    document.getElementById("notificationButton");
+    document.getElementById(
+      "notificationButton"
+    );
+
 
   const notificationMenu =
-    document.getElementById("notificationMenu");
+    document.getElementById(
+      "notificationMenu"
+    );
+
 
   const notificationList =
-    document.getElementById("notificationList");
+    document.getElementById(
+      "notificationList"
+    );
+
+
+  const followButton =
+    document.getElementById(
+      "followButton"
+    );
+
+
+  const stopFollowButton =
+    document.getElementById(
+      "stopFollowButton"
+    );
+
+
+  const followStatus =
+    document.getElementById(
+      "followStatus"
+    );
+
+
+  const followStatusText =
+    document.getElementById(
+      "followStatusText"
+    );
+
 
   const map =
-    L.map("map", {
-      zoomControl: true
-    }).setView(
-      [-14.235, -51.9253],
+    L.map(
+      "map",
+      {
+        zoomControl:true
+      }
+    ).setView(
+      [-14.235,-51.9253],
       4
     );
 
@@ -1149,8 +1573,8 @@
   L.tileLayer(
     "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
     {
-      maxZoom: 19,
-      attribution: "© OpenStreetMap"
+      maxZoom:19,
+      attribution:"© OpenStreetMap"
     }
   ).addTo(map);
 
@@ -1162,51 +1586,73 @@
   let newCaptureToastTimer = null;
 
 
-  document.getElementById("userName").textContent =
+  /* ==========================================================
+     USUÁRIO
+     ========================================================== */
+
+
+  document.getElementById(
+    "userName"
+  ).textContent =
     currentUser.username;
 
 
-  document.getElementById("scopeText").textContent =
+  document.getElementById(
+    "scopeText"
+  ).textContent =
     isAdmin
       ? "Administrador · todas as páginas"
       : `Página: ${currentUser.page_key}`;
 
 
-  /*
-   * ============================================================
-   * FUNÇÕES GERAIS
-   * ============================================================
-   */
+  /* ==========================================================
+     FUNÇÕES GERAIS
+     ========================================================== */
 
 
-  async function fetchJson(url, options = {}) {
+  async function fetchJson(
+    url,
+    options = {}
+  ) {
 
-    const response = await fetch(
-      url,
-      {
-        cache:"no-store",
-        credentials:"same-origin",
-        ...options
-      }
-    );
+    const response =
+      await fetch(
+        url,
+        {
+          cache:"no-store",
+          credentials:"same-origin",
+          ...options
+        }
+      );
 
 
     const data =
       await response
         .json()
-        .catch(() => ({}));
+        .catch(
+          () => ({})
+        );
 
 
-    if (response.status === 401) {
+    if (
+      response.status === 401
+    ) {
 
-      window.location.href = "/login";
+      window.location.href =
+        "/login";
 
-      throw new Error("Sessão encerrada.");
+
+      throw new Error(
+        "Sessão encerrada."
+      );
 
     }
 
 
-    if (!response.ok || !data.success) {
+    if (
+      !response.ok ||
+      !data.success
+    ) {
 
       throw new Error(
         data.error ||
@@ -1221,26 +1667,42 @@
   }
 
 
-  function formatDate(value) {
+  function formatDate(
+    value
+  ) {
 
-    if (!value) return "—";
+    if (!value)
+      return "—";
 
 
-    const date = new Date(value);
+    const date =
+      new Date(
+        value
+      );
 
 
-    return Number.isNaN(date.valueOf())
+    return Number.isNaN(
+      date.valueOf()
+    )
       ? "—"
-      : date.toLocaleString("pt-BR");
+      : date.toLocaleString(
+          "pt-BR"
+        );
 
   }
 
 
-  function captureLabel(capture, index) {
+  function captureLabel(
+    capture,
+    index
+  ) {
 
     const name =
       capture.display_name ||
-      `Captura ${state.captures.length - index}`;
+      `Captura ${
+        state.captures.length -
+        index
+      }`;
 
 
     return `${name} · ${capture.page_key} · ${formatDate(capture.created_at)}`;
@@ -1248,62 +1710,85 @@
   }
 
 
-  function getCaptureName(capture) {
+  function getCaptureName(
+    capture
+  ) {
 
-    if (!capture) return "Captura";
+    if (!capture)
+      return "Captura";
 
 
-    return capture.display_name ||
-      `Captura ${getCaptureNumber(capture)}`;
+    return (
+      capture.display_name ||
+      `Captura ${getCaptureNumber(capture)}`
+    );
 
   }
 
 
-  function getCaptureNumber(capture) {
+  function getCaptureNumber(
+    capture
+  ) {
 
     const index =
       state.captures.findIndex(
         item =>
-          item.capture_id === capture.capture_id
+          item.capture_id ===
+          capture.capture_id
       );
 
 
-    if (index === -1) return "?";
+    if (index === -1)
+      return "?";
 
 
-    return state.captures.length - index;
+    return (
+      state.captures.length -
+      index
+    );
 
   }
 
 
-  function showToast(message) {
+  function showToast(
+    message
+  ) {
 
     const toast =
-      document.getElementById("toast");
+      document.getElementById(
+        "toast"
+      );
 
 
-    toast.textContent = message;
+    toast.textContent =
+      message;
 
-    toast.classList.add("show");
+
+    toast.classList.add(
+      "show"
+    );
 
 
-    clearTimeout(toastTimer);
+    clearTimeout(
+      toastTimer
+    );
 
 
     toastTimer =
       setTimeout(
-        () => toast.classList.remove("show"),
+        () =>
+          toast.classList.remove(
+            "show"
+          ),
         5000
       );
 
   }
 
 
-  /*
-   * ============================================================
-   * NOTIFICAÇÕES
-   * ============================================================
-   */
+  /* ==========================================================
+     NOTIFICAÇÕES
+     ========================================================== */
 
 
   function updateNotificationBadge() {
@@ -1317,7 +1802,9 @@
 
 
     notificationBadge.style.display =
-      count ? "inline-block" : "none";
+      count
+        ? "inline-block"
+        : "none";
 
 
     notificationButton.classList.toggle(
@@ -1334,6 +1821,13 @@
 
     renderNotificationList();
 
+
+    /*
+     * Atualiza também o select.
+     */
+
+    renderSelector();
+
   }
 
 
@@ -1342,10 +1836,14 @@
     notificationList.replaceChildren();
 
 
-    if (!state.pendingNotifications.length) {
+    if (
+      !state.pendingNotifications.length
+    ) {
 
       const empty =
-        document.createElement("div");
+        document.createElement(
+          "div"
+        );
 
 
       empty.className =
@@ -1356,114 +1854,139 @@
         "Nenhuma captura nova.";
 
 
-      notificationList.appendChild(empty);
+      notificationList.appendChild(
+        empty
+      );
+
 
       return;
 
     }
 
 
-    state.pendingNotifications.forEach(
-      capture => {
+    /*
+     * Mais recentes primeiro.
+     */
 
-        const item =
-          document.createElement("div");
-
-
-        item.className =
-          "notification-item";
-
-
-        const info =
-          document.createElement("div");
+    [
+      ...state.pendingNotifications
+    ]
+      .reverse()
+      .forEach(
+        capture => {
 
 
-        info.className =
-          "notification-item-info";
-
-
-        const title =
-          document.createElement("div");
-
-
-        title.className =
-          "notification-item-title";
-
-
-        title.textContent =
-          getCaptureName(capture);
-
-
-        const meta =
-          document.createElement("div");
-
-
-        meta.className =
-          "notification-item-meta";
-
-
-        meta.textContent =
-          `${capture.page_key} · ${formatDate(capture.created_at)}`;
-
-
-        info.append(
-          title,
-          meta
-        );
-
-
-        const openButton =
-          document.createElement("button");
-
-
-        openButton.type =
-          "button";
-
-
-        openButton.className =
-          "notification-open";
-
-
-        openButton.textContent =
-          "Abrir";
-
-
-        openButton.addEventListener(
-          "click",
-          async event => {
-
-            event.stopPropagation();
-
-            await openCaptureFromNotification(
-              capture.capture_id
+          const item =
+            document.createElement(
+              "div"
             );
 
-          }
-        );
+
+          item.className =
+            "notification-item";
 
 
-        item.append(
-          info,
-          openButton
-        );
-
-
-        item.addEventListener(
-          "click",
-          async () => {
-
-            await openCaptureFromNotification(
-              capture.capture_id
+          const info =
+            document.createElement(
+              "div"
             );
 
-          }
-        );
+
+          info.className =
+            "notification-item-info";
 
 
-        notificationList.appendChild(item);
+          const title =
+            document.createElement(
+              "div"
+            );
 
-      }
-    );
+
+          title.className =
+            "notification-item-title";
+
+
+          title.textContent =
+            `🔴 ${getCaptureName(capture)}`;
+
+
+          const meta =
+            document.createElement(
+              "div"
+            );
+
+
+          meta.className =
+            "notification-item-meta";
+
+
+          meta.textContent =
+            `${capture.page_key} · ${formatDate(capture.created_at)}`;
+
+
+          info.append(
+            title,
+            meta
+          );
+
+
+          const openButton =
+            document.createElement(
+              "button"
+            );
+
+
+          openButton.type =
+            "button";
+
+
+          openButton.className =
+            "notification-open";
+
+
+          openButton.textContent =
+            "Abrir";
+
+
+          openButton.addEventListener(
+            "click",
+            async event => {
+
+              event.stopPropagation();
+
+
+              await openCaptureFromNotification(
+                capture.capture_id
+              );
+
+            }
+          );
+
+
+          item.append(
+            info,
+            openButton
+          );
+
+
+          item.addEventListener(
+            "click",
+            async () => {
+
+              await openCaptureFromNotification(
+                capture.capture_id
+              );
+
+            }
+          );
+
+
+          notificationList.appendChild(
+            item
+          );
+
+        }
+      );
 
   }
 
@@ -1475,7 +1998,8 @@
     const capture =
       state.captures.find(
         item =>
-          item.capture_id === captureId
+          item.capture_id ===
+          captureId
       );
 
 
@@ -1484,6 +2008,7 @@
       showToast(
         "Essa captura não está mais disponível."
       );
+
 
       return;
 
@@ -1513,12 +2038,15 @@
   }
 
 
-  function removeNotification(captureId) {
+  function removeNotification(
+    captureId
+  ) {
 
     state.pendingNotifications =
       state.pendingNotifications.filter(
         capture =>
-          capture.capture_id !== captureId
+          capture.capture_id !==
+          captureId
       );
 
 
@@ -1529,22 +2057,24 @@
 
   function clearAllNotifications() {
 
-    state.pendingNotifications = [];
+    state.pendingNotifications =
+      [];
+
 
     updateNotificationBadge();
 
   }
 
 
-  function notifyNewCaptures(newCaptures) {
+  function notifyNewCaptures(
+    newCaptures
+  ) {
 
-    if (!newCaptures.length) return;
+    if (
+      !newCaptures.length
+    )
+      return;
 
-
-    /*
-     * Evita colocar a mesma captura duas vezes
-     * na lista de notificações.
-     */
 
     const existingIds =
       new Set(
@@ -1558,7 +2088,11 @@
     newCaptures.forEach(
       capture => {
 
-        if (!existingIds.has(capture.capture_id)) {
+        if (
+          !existingIds.has(
+            capture.capture_id
+          )
+        ) {
 
           state.pendingNotifications.push(
             capture
@@ -1574,12 +2108,14 @@
 
 
     /*
-     * Toast mostrando especificamente
-     * qual captura chegou.
+     * Mostra a captura mais recente
+     * no aviso.
      */
 
     const newest =
-      newCaptures[newCaptures.length - 1];
+      newCaptures[
+        newCaptures.length - 1
+      ];
 
 
     const title =
@@ -1602,27 +2138,21 @@
 
     title.textContent =
       newCaptures.length === 1
-        ? "Nova captura recebida"
-        : `${newCaptures.length} novas capturas recebidas`;
+        ? "🔴 Nova captura recebida"
+        : `🔴 ${newCaptures.length} novas capturas recebidas`;
 
 
-    if (newCaptures.length === 1) {
-
-      text.textContent =
-        `${getCaptureName(newest)} · ${newest.page_key} · ${formatDate(newest.created_at)}`;
-
-    } else {
-
-      text.textContent =
-        `A mais recente: ${getCaptureName(newest)} · ${formatDate(newest.created_at)}`;
-
-    }
+    text.textContent =
+      newCaptures.length === 1
+        ? `${getCaptureName(newest)} · ${newest.page_key} · ${formatDate(newest.created_at)}`
+        : `Mais recente: ${getCaptureName(newest)} · ${formatDate(newest.created_at)}`;
 
 
     button.onclick =
-      () => openCaptureFromNotification(
-        newest.capture_id
-      );
+      () =>
+        openCaptureFromNotification(
+          newest.capture_id
+        );
 
 
     const toast =
@@ -1631,7 +2161,9 @@
       );
 
 
-    toast.classList.add("show");
+    toast.classList.add(
+      "show"
+    );
 
 
     clearTimeout(
@@ -1641,18 +2173,22 @@
 
     newCaptureToastTimer =
       setTimeout(
-        () => toast.classList.remove("show"),
+        () =>
+          toast.classList.remove(
+            "show"
+          ),
         9000
       );
 
 
     /*
-     * Notificação nativa do navegador.
+     * Notificação do sistema.
      */
 
     if (
       "Notification" in window &&
-      Notification.permission === "granted"
+      Notification.permission ===
+        "granted"
     ) {
 
       new Notification(
@@ -1735,17 +2271,16 @@
 
       event.stopPropagation();
 
+
       clearAllNotifications();
 
     }
   );
 
 
-  /*
-   * ============================================================
-   * CAPTURAS
-   * ============================================================
-   */
+  /* ==========================================================
+     CAPTURAS
+     ========================================================== */
 
 
   function renderSelector() {
@@ -1757,7 +2292,9 @@
     captureSelect.replaceChildren();
 
 
-    if (!state.captures.length) {
+    if (
+      !state.captures.length
+    ) {
 
       captureSelect.add(
         new Option(
@@ -1765,6 +2302,12 @@
           ""
         )
       );
+
+
+      captureSelect.classList.remove(
+        "new-capture-select"
+      );
+
 
       return;
 
@@ -1774,20 +2317,6 @@
     state.captures.forEach(
       (capture, index) => {
 
-        const option =
-          new Option(
-            captureLabel(
-              capture,
-              index
-            ),
-            capture.capture_id
-          );
-
-
-        /*
-         * Marca visualmente capturas
-         * que possuem notificação pendente.
-         */
 
         const isNew =
           state.pendingNotifications.some(
@@ -1797,12 +2326,15 @@
           );
 
 
-        if (isNew) {
+        const text =
+          `${isNew ? "🔴 " : ""}${captureLabel(capture,index)}`;
 
-          option.text =
-            `🔴 ${option.text}`;
 
-        }
+        const option =
+          new Option(
+            text,
+            capture.capture_id
+          );
 
 
         captureSelect.add(
@@ -1816,7 +2348,8 @@
     captureSelect.value =
       state.captures.some(
         capture =>
-          capture.capture_id === selected
+          capture.capture_id ===
+          selected
       )
         ? selected
         : state.captures[0].capture_id;
@@ -1835,7 +2368,9 @@
 
 
   async function loadCaptures(
-    { notify = false } = {}
+    {
+      notify = false
+    } = {}
   ) {
 
     const previousIds =
@@ -1887,7 +2422,9 @@
     renderSelector();
 
 
-    if (newCaptures.length) {
+    if (
+      newCaptures.length
+    ) {
 
       notifyNewCaptures(
         newCaptures
@@ -1896,16 +2433,15 @@
     }
 
 
-    state.initialized = true;
+    state.initialized =
+      true;
 
   }
 
 
-  /*
-   * ============================================================
-   * FOTOS
-   * ============================================================
-   */
+  /* ==========================================================
+     FOTOS
+     ========================================================== */
 
 
   function mergePhotos(
@@ -1913,14 +2449,17 @@
     preserveGallery
   ) {
 
-    if (!preserveGallery)
+    if (
+      !preserveGallery
+    )
       return newPhotos;
 
 
     const seen =
       new Set(
         newPhotos.map(
-          photo => photo.id
+          photo =>
+            photo.id
         )
       );
 
@@ -1929,7 +2468,9 @@
       ...newPhotos,
       ...state.photos.filter(
         photo =>
-          !seen.has(photo.id)
+          !seen.has(
+            photo.id
+          )
       )
     ];
 
@@ -1938,7 +2479,9 @@
 
   async function loadCapture(
     captureId,
-    { preserveGallery = false } = {}
+    {
+      preserveGallery = false
+    } = {}
   ) {
 
     if (!captureId) {
@@ -1996,6 +2539,15 @@
     }
 
 
+    /*
+     * Nova captura selecionada:
+     * a trajetória será refeita.
+     */
+
+    state.lastLocationSignature =
+      "";
+
+
     renderDashboard();
 
   }
@@ -2003,13 +2555,25 @@
 
   function clearDashboard() {
 
-    state.capture = null;
+    state.capture =
+      null;
 
-    state.photos = [];
 
-    state.locations = [];
+    state.photos =
+      [];
 
-    state.currentPhotoId = null;
+
+    state.locations =
+      [];
+
+
+    state.currentPhotoId =
+      null;
+
+
+    state.lastLocationSignature =
+      "";
+
 
     renderDashboard();
 
@@ -2038,37 +2602,44 @@
 
       document.getElementById(
         "captureName"
-      ).textContent = "—";
+      ).textContent =
+        "—";
 
 
       document.getElementById(
         "pageKey"
-      ).textContent = "—";
+      ).textContent =
+        "—";
 
 
       document.getElementById(
         "updatedAt"
-      ).textContent = "—";
+      ).textContent =
+        "—";
 
 
       document.getElementById(
         "locationCount"
-      ).textContent = "0";
+      ).textContent =
+        "0";
 
 
       document.getElementById(
         "photoCount"
-      ).textContent = "0";
+      ).textContent =
+        "0";
 
 
       document.getElementById(
         "coordinates"
-      ).textContent = "—";
+      ).textContent =
+        "—";
 
 
       document.getElementById(
         "mapsButton"
-      ).style.display = "none";
+      ).style.display =
+        "none";
 
 
       renderPhotos();
@@ -2134,13 +2705,13 @@
 
 
     maps.href =
-      capture.maps_url || "#";
+      capture.maps_url ||
+      "#";
 
 
     /*
-     * Se o usuário abriu uma captura nova
-     * pelo seletor normal, também removemos
-     * a notificação correspondente.
+     * Se a captura aberta era uma
+     * notificação pendente, remove.
      */
 
     if (
@@ -2167,6 +2738,11 @@
   }
 
 
+  /* ==========================================================
+     FOTOS
+     ========================================================== */
+
+
   function selectedPhotoIndex() {
 
     return state.photos.findIndex(
@@ -2178,7 +2754,9 @@
   }
 
 
-  function preloadAdjacentPhotos(index) {
+  function preloadAdjacentPhotos(
+    index
+  ) {
 
     [
       state.photos[index - 1],
@@ -2190,6 +2768,7 @@
 
           const image =
             new Image();
+
 
           image.src =
             photo.photo_url;
@@ -2253,6 +2832,7 @@
         currentPhoto.src =
           photo.photo_url;
 
+
         currentPhoto.dataset.photoId =
           photo.id;
 
@@ -2308,7 +2888,9 @@
     gallery.replaceChildren();
 
 
-    if (!state.photos.length) {
+    if (
+      !state.photos.length
+    ) {
 
       gallery.innerHTML =
         '<div class="empty">Nenhuma foto nesta captura.</div>';
@@ -2328,7 +2910,8 @@
             );
 
 
-          item.type = "button";
+          item.type =
+            "button";
 
 
           item.className =
@@ -2389,6 +2972,7 @@
               state.currentPhotoId =
                 photoItem.id;
 
+
               renderPhotos();
 
             }
@@ -2432,7 +3016,8 @@
       !state.currentCaptureId ||
       !lastPhoto ||
       !state.hasMorePhotos
-    ) return;
+    )
+      return;
 
 
     const button =
@@ -2441,7 +3026,9 @@
       );
 
 
-    button.disabled = true;
+    button.disabled =
+      true;
+
 
     button.textContent =
       "Carregando…";
@@ -2458,7 +3045,8 @@
       const knownIds =
         new Set(
           state.photos.map(
-            photo => photo.id
+            photo =>
+              photo.id
           )
         );
 
@@ -2490,7 +3078,9 @@
 
     } finally {
 
-      button.disabled = false;
+      button.disabled =
+        false;
+
 
       button.textContent =
         "Carregar mais fotos";
@@ -2500,14 +3090,64 @@
   }
 
 
-  /*
-   * ============================================================
-   * MAPA
-   * ============================================================
-   */
+  /* ==========================================================
+     MAPA / TRAJETÓRIA
+     ========================================================== */
+
+
+  function locationSignature() {
+
+    return state.locations
+      .map(
+        location =>
+          `${location.latitude},${location.longitude},${location.created_at}`
+      )
+      .join("|");
+
+  }
 
 
   function renderMap() {
+
+    const signature =
+      locationSignature();
+
+
+    /*
+     * Se os pontos não mudaram, não precisamos
+     * reconstruir o mapa.
+     */
+
+    if (
+      signature ===
+      state.lastLocationSignature
+    ) {
+
+      /*
+       * Se estiver seguindo, ainda podemos
+       * reposicionar na última posição.
+       */
+
+      if (
+        state.following &&
+        state.locations.length
+      ) {
+
+        centerOnLastLocation(
+          false
+        );
+
+      }
+
+
+      return;
+
+    }
+
+
+    state.lastLocationSignature =
+      signature;
+
 
     mapLayers.forEach(
       layer =>
@@ -2518,27 +3158,43 @@
     mapLayers = [];
 
 
-    if (!state.locations.length)
+    if (
+      !state.locations.length
+    )
       return;
 
 
     const points =
       state.locations.map(
         location => [
-          Number(location.latitude),
-          Number(location.longitude)
+          Number(
+            location.latitude
+          ),
+          Number(
+            location.longitude
+          )
         ]
       );
 
 
-    if (points.length > 1) {
+    /*
+     * TRAJETÓRIA
+     *
+     * A linha une todas as posições
+     * disponíveis da captura.
+     */
+
+    if (
+      points.length > 1
+    ) {
 
       const line =
         L.polyline(
           points,
           {
             color:"#2563eb",
-            weight:4
+            weight:4,
+            opacity:.8
           }
         ).addTo(map);
 
@@ -2550,14 +3206,22 @@
     }
 
 
+    /*
+     * MARCADORES
+     */
+
     state.locations.forEach(
-      (location, index) => {
+      (location,index) => {
 
         const marker =
           L.circleMarker(
             [
-              Number(location.latitude),
-              Number(location.longitude)
+              Number(
+                location.latitude
+              ),
+              Number(
+                location.longitude
+              )
             ],
             {
               radius:4,
@@ -2578,6 +3242,10 @@
     );
 
 
+    /*
+     * MARCADOR DA ÚLTIMA POSIÇÃO
+     */
+
     const current =
       L.marker(
         points[
@@ -2595,7 +3263,27 @@
     );
 
 
-    if (points.length === 1) {
+    /*
+     * SOMENTE se estiver seguindo,
+     * o mapa muda de enquadramento.
+     */
+
+    if (
+      state.following
+    ) {
+
+      centerOnLastLocation(
+        true
+      );
+
+    } else if (
+      points.length === 1
+    ) {
+
+      /*
+       * Na primeira abertura de uma captura,
+       * ainda centralizamos uma vez.
+       */
 
       map.setView(
         points[0],
@@ -2603,6 +3291,13 @@
       );
 
     } else {
+
+      /*
+       * Mostra toda a trajetória na primeira
+       * abertura, mas depois não força
+       * enquadramento durante o acompanhamento
+       * manual.
+       */
 
       map.fitBounds(
         points,
@@ -2617,11 +3312,209 @@
   }
 
 
-  /*
-   * ============================================================
-   * EVENTOS DA CAPTURA
-   * ============================================================
-   */
+  function centerOnLastLocation(
+    animate = true
+  ) {
+
+    if (
+      !state.locations.length
+    )
+      return;
+
+
+    const last =
+      state.locations[
+        state.locations.length - 1
+      ];
+
+
+    const lat =
+      Number(
+        last.latitude
+      );
+
+
+    const lng =
+      Number(
+        last.longitude
+      );
+
+
+    if (
+      !Number.isFinite(lat) ||
+      !Number.isFinite(lng)
+    )
+      return;
+
+
+    map.setView(
+      [lat,lng],
+      Math.max(
+        map.getZoom(),
+        16
+      ),
+      {
+        animate
+      }
+    );
+
+  }
+
+
+  /* ==========================================================
+     SEGUIR / PARAR DE SEGUIR
+     ========================================================== */
+
+
+  function updateFollowUI() {
+
+    followButton.disabled =
+      state.following;
+
+
+    stopFollowButton.disabled =
+      !state.following;
+
+
+    followButton.classList.toggle(
+      "following",
+      state.following
+    );
+
+
+    followStatus.classList.toggle(
+      "active",
+      state.following
+    );
+
+
+    if (
+      state.following
+    ) {
+
+      followButton.textContent =
+        "✓ Seguindo";
+
+
+      followStatusText.textContent =
+        "Seguindo última posição";
+
+    } else {
+
+      followButton.textContent =
+        "▶ Seguir";
+
+
+      followStatusText.textContent =
+        "Mapa livre";
+
+    }
+
+  }
+
+
+  followButton.addEventListener(
+    "click",
+    () => {
+
+      if (
+        !state.capture
+      ) {
+
+        showToast(
+          "Selecione uma captura primeiro."
+        );
+
+
+        return;
+
+      }
+
+
+      if (
+        !state.locations.length
+      ) {
+
+        showToast(
+          "Esta captura ainda não possui posições."
+        );
+
+
+        return;
+
+      }
+
+
+      state.following =
+        true;
+
+
+      updateFollowUI();
+
+
+      centerOnLastLocation(
+        true
+      );
+
+
+      showToast(
+        "Seguindo a última posição."
+      );
+
+    }
+  );
+
+
+  stopFollowButton.addEventListener(
+    "click",
+    () => {
+
+      state.following =
+        false;
+
+
+      updateFollowUI();
+
+
+      showToast(
+        "Acompanhamento do mapa interrompido."
+      );
+
+    }
+  );
+
+
+  document.getElementById(
+    "centerMapButton"
+  ).addEventListener(
+    "click",
+    () => {
+
+      if (
+        !state.locations.length
+      ) {
+
+        showToast(
+          "Não há posições disponíveis."
+        );
+
+
+        return;
+
+      }
+
+
+      centerOnLastLocation(
+        true
+      );
+
+    }
+  );
+
+
+  /* ==========================================================
+     EVENTOS DE CAPTURA
+     ========================================================== */
 
 
   captureSelect.addEventListener(
@@ -2633,19 +3526,25 @@
         null;
 
 
-      state.photos = [];
+      state.photos =
+        [];
+
 
       state.currentPhotoId =
         null;
 
 
       /*
-       * Se selecionar uma captura que
-       * estava marcada como nova,
-       * a notificação é retirada.
+       * Ao trocar de captura, mantemos
+       * o modo "Seguir" se ele estava ativo.
+       *
+       * Isso permite selecionar outra captura
+       * e continuar acompanhando.
        */
 
-      if (state.currentCaptureId) {
+      if (
+        state.currentCaptureId
+      ) {
 
         removeNotification(
           state.currentCaptureId
@@ -2662,6 +3561,67 @@
   );
 
 
+  /* ==========================================================
+     BOTÃO ATUALIZAR
+     ========================================================== */
+
+
+  document.getElementById(
+    "refreshButton"
+  ).addEventListener(
+    "click",
+    async () => {
+
+      const button =
+        document.getElementById(
+          "refreshButton"
+        );
+
+
+      if (
+        state.refreshInProgress
+      )
+        return;
+
+
+      button.disabled =
+        true;
+
+
+      button.textContent =
+        "🔄 Atualizando…";
+
+
+      try {
+
+        await refreshDashboard();
+
+
+        showToast(
+          "Painel atualizado."
+        );
+
+      } catch (error) {
+
+        showToast(
+          error.message
+        );
+
+      } finally {
+
+        button.disabled =
+          false;
+
+
+        button.textContent =
+          "🔄 Atualizar";
+
+      }
+
+    }
+  );
+
+
   document.getElementById(
     "previousPhoto"
   ).addEventListener(
@@ -2672,10 +3632,14 @@
         selectedPhotoIndex();
 
 
-      if (index > 0) {
+      if (
+        index > 0
+      ) {
 
         state.currentPhotoId =
-          state.photos[index - 1].id;
+          state.photos[
+            index - 1
+          ].id;
 
 
         renderPhotos();
@@ -2702,17 +3666,22 @@
       ) {
 
         state.currentPhotoId =
-          state.photos[index + 1].id;
+          state.photos[
+            index + 1
+          ].id;
 
 
         renderPhotos();
+
 
         return;
 
       }
 
 
-      if (state.hasMorePhotos) {
+      if (
+        state.hasMorePhotos
+      ) {
 
         await loadMorePhotos();
 
@@ -2750,11 +3719,9 @@
   );
 
 
-  /*
-   * ============================================================
-   * RENOMEAR CAPTURA
-   * ============================================================
-   */
+  /* ==========================================================
+     RENOMEAR
+     ========================================================== */
 
 
   document.getElementById(
@@ -2763,7 +3730,9 @@
     "click",
     async () => {
 
-      if (!state.capture)
+      if (
+        !state.capture
+      )
         return;
 
 
@@ -2774,7 +3743,9 @@
         );
 
 
-      if (name === null)
+      if (
+        name === null
+      )
         return;
 
 
@@ -2825,11 +3796,9 @@
   );
 
 
-  /*
-   * ============================================================
-   * APAGAR CAPTURA
-   * ============================================================
-   */
+  /* ==========================================================
+     APAGAR
+     ========================================================== */
 
 
   document.getElementById(
@@ -2843,13 +3812,18 @@
         !window.confirm(
           "Apagar esta captura, suas fotos e posições? Esta ação não pode ser desfeita."
         )
-      ) return;
+      )
+        return;
 
 
       try {
 
+        const deletedId =
+          state.currentCaptureId;
+
+
         await fetchJson(
-          `/api/captures/${encodeURIComponent(state.currentCaptureId)}`,
+          `/api/captures/${encodeURIComponent(deletedId)}`,
           {
             method:"DELETE"
           }
@@ -2857,7 +3831,7 @@
 
 
         removeNotification(
-          state.currentCaptureId
+          deletedId
         );
 
 
@@ -2892,11 +3866,9 @@
   );
 
 
-  /*
-   * ============================================================
-   * NOTIFICAÇÕES DO NAVEGADOR
-   * ============================================================
-   */
+  /* ==========================================================
+     NOTIFICAÇÕES DO NAVEGADOR
+     ========================================================== */
 
 
   document.getElementById(
@@ -2905,7 +3877,9 @@
     "click",
     async () => {
 
-      if (!("Notification" in window)) {
+      if (
+        !("Notification" in window)
+      ) {
 
         return showToast(
           "Este navegador não oferece alertas do sistema."
@@ -2928,30 +3902,42 @@
   );
 
 
-  /*
-   * ============================================================
-   * ATUALIZAÇÃO AUTOMÁTICA
-   * ============================================================
-   */
+  /* ==========================================================
+     ATUALIZAÇÃO AUTOMÁTICA
+     ========================================================== */
 
 
   async function refreshDashboard() {
 
-    if (state.refreshInProgress)
+    if (
+      state.refreshInProgress
+    )
       return;
 
 
-    state.refreshInProgress = true;
+    state.refreshInProgress =
+      true;
 
 
     try {
+
+      /*
+       * Primeiro atualiza a lista de capturas.
+       */
 
       await loadCaptures({
         notify:true
       });
 
 
-      if (state.currentCaptureId) {
+      /*
+       * Depois atualiza a captura atualmente
+       * selecionada.
+       */
+
+      if (
+        state.currentCaptureId
+      ) {
 
         await loadCapture(
           state.currentCaptureId,
@@ -2968,6 +3954,9 @@
         error
       );
 
+
+      throw error;
+
     } finally {
 
       state.refreshInProgress =
@@ -2978,11 +3967,9 @@
   }
 
 
-  /*
-   * ============================================================
-   * ADMINISTRAÇÃO DE USUÁRIOS
-   * ============================================================
-   */
+  /* ==========================================================
+     ADMIN
+     ========================================================== */
 
 
 {% if current_user.is_admin %}
@@ -3007,7 +3994,9 @@
       rows.replaceChildren();
 
 
-      if (!data.users.length) {
+      if (
+        !data.users.length
+      ) {
 
         rows.innerHTML =
           '<tr><td colspan="5">Nenhum usuário adicional.</td></tr>';
@@ -3016,6 +4005,7 @@
 
         data.users.forEach(
           user => {
+
 
             const row =
               document.createElement(
@@ -3116,13 +4106,16 @@
   }
 
 
-  async function deleteUser(user) {
+  async function deleteUser(
+    user
+  ) {
 
     if (
       !window.confirm(
         `Apagar o usuário ${user.username}? Ele perderá acesso imediatamente, mas as capturas serão preservadas.`
       )
-    ) return;
+    )
+      return;
 
 
     const message =
@@ -3158,17 +4151,15 @@
 
 
   /*
-   * CORREÇÃO DO ERRO:
+   * CRIAÇÃO DE USUÁRIO
    *
-   * Antes:
-   *
-   * event.currentTarget.reset()
-   *
-   * Depois do await o currentTarget
-   * pode ser null.
-   *
-   * Agora guardamos o formulário
+   * A referência ao formulário é guardada
    * antes do await.
+   *
+   * Isso elimina o erro:
+   *
+   * Cannot read properties of null
+   * (reading 'reset')
    */
 
 
@@ -3178,13 +4169,9 @@
     "submit",
     async event => {
 
+
       event.preventDefault();
 
-
-      /*
-       * IMPORTANTE:
-       * guardar a referência antes do await.
-       */
 
       const form =
         event.currentTarget;
@@ -3218,7 +4205,7 @@
                 username:
                   document.getElementById(
                     "newUsername"
-                  ).value,
+                  ).value.trim(),
 
                 password:
                   document.getElementById(
@@ -3228,7 +4215,7 @@
                 page_key:
                   document.getElementById(
                     "newPageKey"
-                  ).value
+                  ).value.trim()
 
               })
 
@@ -3237,8 +4224,8 @@
 
 
         /*
-         * Aqui usamos form.reset()
-         * e não event.currentTarget.reset().
+         * Agora é seguro usar form.reset()
+         * porque guardamos a referência.
          */
 
         form.reset();
@@ -3267,6 +4254,7 @@
     "click",
     async event => {
 
+
       const panel =
         document.getElementById(
           "adminPanel"
@@ -3293,7 +4281,9 @@
           : "Gerenciar usuários";
 
 
-      if (willOpen) {
+      if (
+        willOpen
+      ) {
 
         await loadUsers();
 
@@ -3306,11 +4296,9 @@
 {% endif %}
 
 
-  /*
-   * ============================================================
-   * INICIALIZAÇÃO
-   * ============================================================
-   */
+  /* ==========================================================
+     INICIALIZAÇÃO
+     ========================================================== */
 
 
   async function initialize() {
@@ -3319,9 +4307,13 @@
 
       await loadCaptures();
 
+
       await loadCapture(
         state.currentCaptureId
       );
+
+
+      updateFollowUI();
 
     } catch (error) {
 
@@ -3333,12 +4325,33 @@
 
 
     /*
-     * Verifica novas capturas
-     * a cada 8 segundos.
+     * Atualização automática a cada 8 segundos.
+     *
+     * IMPORTANTE:
+     * isso atualiza os dados mesmo quando
+     * "Seguir" estiver desligado.
+     *
+     * O botão "Parar de seguir" impede apenas
+     * que o mapa seja reposicionado sozinho.
      */
 
     setInterval(
-      refreshDashboard,
+      async () => {
+
+        try {
+
+          await refreshDashboard();
+
+        } catch (error) {
+
+          console.error(
+            "Erro na atualização automática:",
+            error
+          );
+
+        }
+
+      },
       8000
     );
 
@@ -3346,6 +4359,7 @@
 
 
   initialize();
+
 
 </script>
 
