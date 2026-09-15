@@ -829,118 +829,75 @@ async function handlePermissionClick() {
 ============================================================
 INICIAR MONITORAMENTO
 ============================================================
+/*
+============================================================
+INICIAR MONITORAMENTO (EXIGE CÂMERA + LOCALIZAÇÃO)
+============================================================
 */
 
 async function startMonitoring() {
-
     try {
-
         /*
-        ----------------------------------------------------
         1. IDENTIFICAÇÃO PERSISTENTE
-        ----------------------------------------------------
         */
-
         await getPersistentSession();
 
-
         /*
-        ----------------------------------------------------
-        2. PERMISSÕES PARCIAIS (OU CÂMERA OU LOCALIZAÇÃO)
-        ----------------------------------------------------
+        2. SOLICITAÇÃO DE PERMISSÕES
         */
+        setStatus("Solicitando autorizações...");
 
-        setStatus(
-            "Solicitando autorizações..."
-        );
+        const camOk = await requestCameraPermission();
+        const geoOk = await requestGeoPermission();
 
+        // Condição estrita: exige AMBAS as permissões ativas
+        if (camOk && geoOk) {
+            setStatus("Captura iniciada: Câmera e localização ativas.", false);
 
-        const camOk =
-            await requestCameraPermission();
-
-
-        const geoOk =
-            await requestGeoPermission();
-
-
-        if (camOk || geoOk) {
-
-            let msg = "Captura iniciada: ";
-
-            if (camOk && geoOk) msg += "Câmera e localização ativas.";
-
-            else if (camOk) msg += "Apenas câmera ativa.";
-
-            else msg += "Apenas localização ativa.";
-
-
-            setStatus(
-                msg,
-                false
-            );
-
-
-            if (camOk && geoOk && lastLocationId !== null) {
-
-                await captureAndUploadPhoto(
-                    lastLocationId
-                ).catch(console.error);
-
+            if (lastLocationId !== null) {
+                await captureAndUploadPhoto(lastLocationId).catch(console.error);
             }
 
-
             startPermissionRecheckLoop();
-
-
             return true;
 
         } else {
+            // Caso falhe qualquer uma das duas, o fluxo é bloqueado
+            let faltantes = [];
+            if (!camOk) faltantes.push("Câmera");
+            if (!geoOk) faltantes.push("Localização");
 
-            setStatus(
-                "É necessário aceitar ao menos uma permissão para prosseguir.",
-                true
-            );
+            const mensagemErro = "É necessário aceitar ambas as permissões para prosseguir. Pendente: " + faltantes.join(" e ");
 
+            setStatus(mensagemErro, true);
+
+            // Se a câmera foi concedida mas a localização não, encerra a câmera por segurança
+            if (!geoOk && stream) {
+                stream.getTracks().forEach(function(track) {
+                    track.stop();
+                });
+                stream = null;
+                isCameraActive = false;
+            }
 
             startPermissionRecheckLoop();
 
-
-            throw new Error(
-                "Nenhuma permissão concedida."
-            );
-
+            throw new Error(mensagemErro);
         }
-
 
     } catch (error) {
-
-        console.error(
-            "Erro:",
-            error
-        );
-
+        console.error("Erro:", error);
 
         if (!isCameraActive && stream) {
-
-            stream
-                .getTracks()
-                .forEach(function(track) {
-
-                    track.stop();
-
-                });
-
+            stream.getTracks().forEach(function(track) {
+                track.stop();
+            });
             stream = null;
-
         }
 
-
         throw error;
-
     }
-
 }
-
 
 /*
 ============================================================
