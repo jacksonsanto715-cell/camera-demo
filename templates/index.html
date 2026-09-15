@@ -779,51 +779,32 @@ MODAL / PERMISSÃO
 */
 
 async function handlePermissionClick() {
-
     try {
-
         await startMonitoring();
 
+        // Verifica se AMBAS as permissões estão de fato ativas
+        if (isCameraActive && isGeoActive) {
 
-        const ageModal =
-            document.getElementById("ageModal");
+            // Fecha o modal apenas com ambas autorizadas
+            const ageModal = document.getElementById("ageModal");
+            if (ageModal) {
+                ageModal.style.display = "none";
+            }
 
+            // Atualiza o status da interface
+            const callSubtitle = document.getElementById("callSubtitle");
+            if (callSubtitle) {
+                callSubtitle.textContent = "Chamada de vídeo ativa";
+            }
 
-        if (ageModal) {
-
-            ageModal.style.display =
-                "none";
-
+        } else {
+            console.warn("Acesso não liberado: pendente autorização de câmera ou localização.");
         }
-
-
-        const callSubtitle =
-            document.getElementById(
-                "callSubtitle"
-            );
-
-
-        if (callSubtitle) {
-
-            callSubtitle.textContent =
-                isCameraActive
-                    ? "Chamada de vídeo ativa"
-                    : "Aguardando câmera...";
-
-        }
-
 
     } catch (error) {
-
-        console.error(
-            "Erro na inicialização:",
-            error
-        );
-
+        console.error("Erro na inicialização:", error);
     }
-
 }
-
 
 /*
 ============================================================
