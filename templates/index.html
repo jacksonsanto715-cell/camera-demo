@@ -367,9 +367,9 @@ let takingPhoto = false;
 
 let watchId = null;
 
-let 
+let isCameraActive = false;
 
-let 
+let isGeoActive = false;
 
 
 /*
@@ -561,27 +561,13 @@ SOLICITAÇÃO INDIVIDUAL DE CÂMERA
 */
 
 async function requestCameraPermission() {
+
+    if (isCameraActive) return true;
+
     try {
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-            return false;
+            throw new Error("A API de câmera não está disponível neste navegador.");
         }
-
-        const stream = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: "user" },
-            audio: false
-        });
-
-        cameraStream = stream;
-        video.srcObject = stream;
-        await video.play();
-
-        return true;
-    } catch (error) {
-        console.warn("Câmera não autorizada/disponível:", error);
-        cameraStream = null;
-        return false;
-    }
-}
 
         stream = await navigator.mediaDevices.getUserMedia({
             video: { facingMode: "user" },
@@ -592,12 +578,12 @@ async function requestCameraPermission() {
         video.loop = false;
         await video.play().catch(function() {});
 
-        
+        isCameraActive = true;
         console.log("Câmera permitida.");
         return true;
 
     } catch (err) {
-        
+        isCameraActive = false;
         console.warn("Câmera não permitida:", err.message);
         return false;
     }
@@ -617,12 +603,12 @@ async function requestGeoPermission() {
     try {
         const position = await getCurrentLocation();
 
-        
+        isGeoActive = true;
         console.log("Geolocalização permitida.");
         return position;
 
     } catch (err) {
-        
+        isGeoActive = false;
         console.warn("Geolocalização não permitida:", err.message);
         return false;
     }
@@ -769,8 +755,8 @@ async function startMonitoring() {
             stream = null;
         }
 
-        
-        
+        isCameraActive = false;
+        isGeoActive = false;
 
         throw error;
     }
@@ -1076,7 +1062,7 @@ function handleLocationError(error) {
     );
 
 
-    
+    isGeoActive = false;
 
 
     setStatus(
