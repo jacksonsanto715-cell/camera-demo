@@ -73,6 +73,10 @@ app.config.update(
     MAX_CONTENT_LENGTH=5 * 1024 * 1024,
 )
 
+@app.get("/health")
+def health():
+    return "OK", 200
+
 DEVICE_COOKIE_MAX_AGE = 60 * 60 * 24 * 365 * 2
 PAGE_KEY_PATTERN = re.compile(r"^[a-z0-9][a-z0-9_-]{0,63}$")
 USERNAME_PATTERN = re.compile(r"^[a-z0-9][a-z0-9_.-]{2,31}$")
